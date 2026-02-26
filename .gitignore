@@ -155,3 +155,10 @@ Thumbs.db
 # Trae IDE (Optional: keep rules, ignore others)
 .trae/
 !.trae/rules/
+
+# Databases
+*.db
+*.sqlite
+
+# Documentation Exception
+!docs/architecture_readme.md
