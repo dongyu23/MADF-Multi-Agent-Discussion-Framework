@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MADF API 测试控制台</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .card { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; border-radius: 5px; }
+        h2 { margin-top: 0; }
+        label { display: block; margin: 5px 0; }
+        input, textarea, select { width: 100%; padding: 5px; margin-bottom: 10px; box-sizing: border-box; }
+        button { background-color: #007bff; color: white; border: none; padding: 10px 15px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        pre { background-color: #f4f4f4; padding: 10px; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; }
+        .response-area { margin-top: 10px; border-top: 1px dashed #ccc; padding-top: 10px; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>MADF API 测试控制台</h1>
+    <p>简单的前端页面，用于测试 MADF 的核心 API 功能。</p>
+    
+    <!-- 1. Agent 聊天测试 (最核心的新功能) -->
+    <div class="card">
+        <h2>🤖 Agent 聊天测试 (Web API)</h2>
+        <p>直接调用 <code>/api/v1/agents/chat</code> 接口，让 Agent 根据上下文思考并发言。</p>
+        
+        <label>Agent 名称:</label>
+        <input type="text" id="agentName" value="苏格拉底">
+        
+        <label>Bio (生平):</label>
+        <textarea id="agentBio" rows="3">古希腊哲学家，苏格拉底方法的创立者。通过不断的提问来揭示真理。</textarea>
+        
+        <label>Theories (理论武库 - JSON数组):</label>
+        <input type="text" id="agentTheories" value='["产婆术", "无知之知", "反讽", "归纳定义", "灵魂不朽", "美德即知识", "辩证法"]'>
+        
+        <label>System Prompt:</label>
+        <textarea id="agentPrompt" rows="3">你叫苏格拉底。你的生平是：古希腊哲学家... 你的理论武库包含：产婆术... **重要指令**：你是一个活生生的人，不要每次发言都机械地自我介绍。</textarea>
+        
+        <label>当前上下文 (Context Messages - JSON数组):</label>
+        <textarea id="agentContext" rows="5">[
+    {"speaker": "主持人", "content": "大家好，欢迎来到关于‘AI对未来的影响’的讨论。"},
+    {"speaker": "用户", "content": "我认为AI会取代很多工作。"}
+]</textarea>
+
+        <button onclick="testAgentChat()">发送给 Agent</button>
+        
+        <div class="response-area">
+            <strong>响应:</strong>
+            <pre id="agentResponse">等待请求...</pre>
+        </div>
+    </div>
+
+    <!-- 2. 用户注册 -->
+    <div class="card">
+        <h2>👤 用户注册</h2>
+        <label>用户名:</label>
+        <input type="text" id="regUsername" value="testuser">
+        <label>密码:</label>
+        <input type="password" id="regPassword" value="password123">
+        <button onclick="registerUser()">注册</button>
+        <div class="response-area"><pre id="regResponse">...</pre></div>
+    </div>
+
+    <!-- 3. 创建角色 -->
+    <div class="card">
+        <h2>🎭 创建角色 (Persona)</h2>
+        <label>Owner ID:</label>
+        <input type="number" id="personaOwnerId" value="1">
+        <label>角色名:</label>
+        <input type="text" id="personaName" value="柏拉图">
+        <button onclick="createPersona()">创建角色</button>
+        <div class="response-area"><pre id="personaResponse">...</pre></div>
+    </div>
+
+    <!-- 4. 创建论坛 -->
+    <div class="card">
+        <h2>💬 创建论坛</h2>
+        <label>Creator ID:</label>
+        <input type="number" id="forumCreatorId" value="1">
+        <label>主题:</label>
+        <input type="text" id="forumTopic" value="哲学与AI">
+        <label>参与者 ID (逗号分隔):</label>
+        <input type="text" id="forumParticipants" value="1">
+        <button onclick="createForum()">创建论坛</button>
+        <div class="response-area"><pre id="forumResponse">...</pre></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api/v1';
+
+        async function post(url, data, outputId) {
+            const output = document.getElementById(outputId);
+            output.textContent = "请求中...";
+            output.className = "";
+            
+            try {
+                const response = await fetch(API_BASE + url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                output.textContent = JSON.stringify(result, null, 2);
+                
+                if (response.ok) {
+                    output.className = "success";
+                } else {
+                    output.className = "error";
+                }
+            } catch (error) {
+                output.textContent = "请求失败: " + error.message;
+                output.className = "error";
+            }
+        }
+
+        function testAgentChat() {
+            try {
+                const theories = JSON.parse(document.getElementById('agentTheories').value);
+                const context = JSON.parse(document.getElementById('agentContext').value);
+                
+                const data = {
+                    agent_name: document.getElementById('agentName').value,
+                    persona_json: {
+                        name: document.getElementById('agentName').value,
+                        title: "测试专家",
+                        bio: document.getElementById('agentBio').value,
+                        theories: theories,
+                        system_prompt: document.getElementById('agentPrompt').value,
+                        stance: "中立"
+                    },
+                    context_messages: context,
+                    theme: "AI对未来的影响"
+                };
+                
+                post('/agents/chat', data, 'agentResponse');
+            } catch (e) {
+                alert("JSON 格式错误: " + e.message);
+            }
+        }
+
+        function registerUser() {
+            const data = {
+                username: document.getElementById('regUsername').value,
+                password: document.getElementById('regPassword').value,
+                role: "user"
+            };
+            post('/users/', data, 'regResponse');
+        }
+
+        function createPersona() {
+            const ownerId = document.getElementById('personaOwnerId').value;
+            const data = {
+                name: document.getElementById('personaName').value,
+                bio: "测试Bio",
+                theories: ["T1", "T2"],
+                is_public: true
+            };
+            // Note: In real app, we need authentication, but here we pass params if API allows query params for IDs
+            // The API uses params for owner_id: /api/v1/personas/?owner_id=1
+            
+            // Re-implement post manually to handle query params
+            const output = document.getElementById('personaResponse');
+            output.textContent = "请求中...";
+            
+            fetch(`${API_BASE}/personas/?owner_id=${ownerId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(res => res.json())
+            .then(data => output.textContent = JSON.stringify(data, null, 2))
+            .catch(err => output.textContent = err.message);
+        }
+
+        function createForum() {
+            const creatorId = document.getElementById('forumCreatorId').value;
+            const pIds = document.getElementById('forumParticipants').value.split(',').map(Number);
+            
+            const data = {
+                topic: document.getElementById('forumTopic').value,
+                participant_ids: pIds
+            };
+            
+            const output = document.getElementById('forumResponse');
+            output.textContent = "请求中...";
+            
+            fetch(`${API_BASE}/forums/?creator_id=${creatorId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(res => res.json())
+            .then(data => output.textContent = JSON.stringify(data, null, 2))
+            .catch(err => output.textContent = err.message);
+        }
+    </script>
+</body>
+</html>

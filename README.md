@@ -46,70 +46,62 @@ pip install -r requirements.txt
 pipdeptree > dependency_tree_report.txt
 ```
 
-`dependency_tree_report.txt` 文件包含了详细的依赖关系树、版本号及来源信息。
+## 2. 项目架构与结构
 
-## 2. 构建与测试流程
+详细的架构说明、文件角色定义及依赖关系图谱，请参考：
+👉 **[架构说明文档 (Architecture Readme)](docs/architecture_readme.md)**
 
-本项目提供了一个自动化的构建脚本 `build_and_test.py`，用于执行完整的构建流程，包括依赖检查、代码风格检查、单元测试和容器构建。
+## 3. API 服务 (FastAPI)
 
-### 2.1 执行完整构建
+本项目已重构为基于 FastAPI 的 RESTful 服务。
 
-在本地环境运行以下命令：
+### 2.1 启动服务
+
+```bash
+python app/main.py
+# 或
+uvicorn app.main:app --reload
+```
+
+服务启动后，访问 `http://localhost:8000/docs` 查看交互式 API 文档。
+
+### 2.2 数据库迁移 (Alembic)
+
+项目使用 Alembic 进行数据库版本管理。
+
+```bash
+# 生成新的迁移脚本（修改模型后执行）
+alembic revision --autogenerate -m "description"
+
+# 应用迁移到数据库
+alembic upgrade head
+```
+
+### 2.3 运行 API 测试
+
+```bash
+python -m pytest app/tests/test_api.py
+```
+
+## 3. 命令行工具 (Legacy)
+
+原有的命令行工具仍然保留，可用于快速演示。
+
+```bash
+python main.py "讨论主题" 3 5
+```
+
+## 4. 构建与测试流程
+
+自动化构建脚本 `build_and_test.py` 已更新，涵盖 API 测试。
 
 ```bash
 python build_and_test.py
 ```
 
-该脚本将依次执行：
-1. **依赖安装**：确保环境一致。
-2. **依赖报告生成**：输出 `dependency_tree_report.txt`。
-3. **代码检查 (Lint)**：使用 `flake8` 检查代码风格。
-4. **单元测试 (Smoke Test)**：使用 `pytest` 运行 `tests/test_smoke.py`，验证核心类实例化和 API 连通性。
-5. **容器构建 (Docker)**：尝试构建 Docker 镜像（如果已安装 Docker）。
-6. **端到端测试 (E2E)**：模拟运行应用程序 (`python main.py`) 1 分钟，确保无运行时错误。
-
-### 2.2 手动运行测试
-
-你也可以手动运行测试：
-
-```bash
-# 运行单元/冒烟测试
-python -m pytest tests/test_smoke.py
-
-# 运行端到端测试 (主题="测试", 人数=3, 时长=1分钟)
-python main.py "测试主题" 3 1
-```
-
-## 3. 容器化部署
-
-本项目支持 Docker 容器化部署。
-
-### 3.1 构建镜像
+## 5. 容器化部署
 
 ```bash
 docker build -t madf-agent .
+docker run -p 8000:8000 madf-agent uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
-
-### 3.2 运行容器
-
-```bash
-# 交互式运行 (默认配置)
-docker run -it --rm madf-agent
-
-# 指定参数运行 (主题="AI未来", 人数=3, 时长=5分钟)
-docker run -it --rm madf-agent python main.py "AI未来" 3 5
-```
-
-## 4. CI/CD 集成建议
-
-在 CI 环境（如 Jenkins, GitLab CI, GitHub Actions）中，可以直接复用 `build_and_test.py` 脚本作为构建步骤。确保 CI Runner 已安装 Python 3.10+ 和 Docker（可选）。
-
-## 5. 依赖清单
-
-核心依赖包括：
-- `zhipuai`: 智谱 AI 大模型 SDK
-- `pytest`: 测试框架
-- `flake8`: 代码检查工具
-- `pipdeptree`: 依赖树分析工具
-
-详细列表请参考 `requirements.txt` 和 `dependency_tree_report.txt`。

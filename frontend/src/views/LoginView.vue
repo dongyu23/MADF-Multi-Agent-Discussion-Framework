@@ -1,0 +1,162 @@
+<template>
+  <div class="auth-wrapper">
+    <a-card :bordered="false" class="auth-card">
+      <div class="auth-header">
+        <div class="auth-title">登录</div>
+        <div class="auth-subtitle">欢迎回来，请登录您的账户</div>
+      </div>
+      
+      <a-alert
+        v-if="authStore.error"
+        :message="authStore.error"
+        type="error"
+        show-icon
+        closable
+        style="margin-bottom: 24px"
+        @close="authStore.error = null"
+      />
+
+      <a-form
+        layout="vertical"
+        :model="formState"
+        @finish="onFinish"
+        hide-required-mark
+        class="auth-form"
+      >
+        <a-form-item
+          name="username"
+          :rules="[{ required: true, message: '请输入用户名' }]"
+        >
+          <a-input
+            v-model:value="formState.username"
+            size="large"
+            placeholder="用户名"
+          >
+            <template #prefix>
+              <user-outlined style="color: rgba(0,0,0,.25)" />
+            </template>
+          </a-input>
+        </a-form-item>
+
+        <a-form-item
+          name="password"
+          :rules="[{ required: true, message: '请输入密码' }]"
+        >
+          <a-input-password
+            v-model:value="formState.password"
+            size="large"
+            placeholder="密码"
+          >
+            <template #prefix>
+              <lock-outlined style="color: rgba(0,0,0,.25)" />
+            </template>
+          </a-input-password>
+        </a-form-item>
+
+        <a-form-item>
+          <a-button
+            type="primary"
+            html-type="submit"
+            size="large"
+            block
+            :loading="authStore.loading"
+            class="submit-btn"
+          >
+            登录
+          </a-button>
+        </a-form-item>
+
+        <div class="auth-footer">
+          <span>还没有账号？</span>
+          <router-link to="/auth/register" class="link-btn">立即注册</router-link>
+        </div>
+      </a-form>
+    </a-card>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { reactive } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+import { UserOutlined, LockOutlined } from '@ant-design/icons-vue'
+
+const authStore = useAuthStore()
+const formState = reactive({
+  username: '',
+  password: ''
+})
+
+const onFinish = (values: Record<string, string>) => {
+  authStore.login(values)
+}
+</script>
+
+<style scoped>
+.auth-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 24px;
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.auth-title {
+  font-size: 24px;
+  color: rgba(0, 0, 0, 0.85);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.auth-subtitle {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.auth-form {
+  margin-bottom: 0;
+}
+
+.submit-btn {
+  height: 40px;
+  font-size: 16px;
+  margin-top: 8px;
+}
+
+.auth-footer {
+  text-align: center;
+  font-size: 14px;
+  margin-top: 16px;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.link-btn {
+  color: #1890ff;
+  font-weight: 500;
+  margin-left: 4px;
+}
+
+.link-btn:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 576px) {
+  .auth-card {
+    box-shadow: none;
+    padding: 0;
+    background: transparent;
+  }
+}
+</style>
