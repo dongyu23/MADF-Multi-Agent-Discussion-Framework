@@ -1,6 +1,8 @@
 <template>
   <a-config-provider :locale="zhCN" :theme="{ algorithm: configStore.isDark ? theme.darkAlgorithm : theme.defaultAlgorithm }">
-    <router-view />
+    <div class="app-container">
+      <router-view />
+    </div>
   </a-config-provider>
 </template>
 
@@ -11,3 +13,12 @@ import { useConfigStore } from '@/stores/config'
 
 const configStore = useConfigStore()
 </script>
+
+<style>
+html, body, #app, .app-container {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Prevent global scrollbar */
+}
+</style>

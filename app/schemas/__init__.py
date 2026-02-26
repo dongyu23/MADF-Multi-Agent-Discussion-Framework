@@ -75,6 +75,7 @@ class ForumBase(BaseModel):
 
 class ForumCreate(ForumBase):
     participant_ids: List[int]
+    duration_minutes: int = 30
 
 class ForumParticipantResponse(BaseModel):
     persona_id: int
@@ -108,6 +109,7 @@ class ForumResponse(ForumBase):
     status: str
     start_time: datetime
     end_time: Optional[datetime] = None
+    duration_minutes: Optional[int] = 30
     summary_history: Optional[Union[List[Any], str]] = [] # Changed to List[Any] for flexibility
     participants: Optional[List[ForumParticipantResponse]] = []
 

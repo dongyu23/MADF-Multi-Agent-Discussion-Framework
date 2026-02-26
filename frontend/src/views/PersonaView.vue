@@ -6,8 +6,8 @@
         <span class="subtitle">管理您的智能体角色，定义个性与认知体系</span>
       </div>
       <a-space>
-        <a-button type="default" size="large" @click="handleCreatePreset" :loading="presetLoading">
-          <thunderbolt-outlined /> 一键生成预设智能体
+        <a-button type="primary" ghost size="large" @click="showGodModal" :loading="godLoading">
+          <thunderbolt-outlined /> 调用上帝生成全新智能体
         </a-button>
         <a-button type="primary" size="large" @click="showModal()">
           <plus-outlined /> 创建智能体
@@ -103,6 +103,10 @@
       </a-tab-pane>
     </a-tabs>
 
+    <GodAgentModal
+      v-model:open="godModalVisible"
+    />
+
     <a-modal
       v-model:open="visible"
       :title="editingId ? '编辑智能体' : '创建智能体'"
@@ -193,7 +197,9 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { usePersonaStore, type Persona } from '@/stores/persona'
+import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
+import GodAgentModal from '@/components/god/GodAgentModal.vue'
 import {
   PlusOutlined,
   EditOutlined,
@@ -203,8 +209,10 @@ import {
 } from '@ant-design/icons-vue'
 
 const personaStore = usePersonaStore()
+const router = useRouter()
 const visible = ref(false)
 const detailsVisible = ref(false)
+const godModalVisible = ref(false)
 const submitting = ref(false)
 const editingId = ref<number | null>(null)
 const activeTab = ref('grid')
@@ -305,16 +313,8 @@ const showDetails = (persona: Persona) => {
   detailsVisible.value = true
 }
 
-const handleCreatePreset = async () => {
-    presetLoading.value = true
-    try {
-        await personaStore.createPresetPersonas()
-        message.success('预设智能体已生成')
-    } catch (e) {
-        message.error('生成失败')
-    } finally {
-        presetLoading.value = false
-    }
+const showGodModal = () => {
+    godModalVisible.value = true
 }
 </script>
 
@@ -322,6 +322,7 @@ const handleCreatePreset = async () => {
 .persona-page {
   max-width: 1200px;
   margin: 0 auto;
+  padding: 24px;
 }
 
 .page-header {

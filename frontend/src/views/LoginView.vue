@@ -86,8 +86,8 @@ const formState = reactive({
   password: ''
 })
 
-const onFinish = (values: Record<string, string>) => {
-  authStore.login(values)
+const onFinish = async (values: any) => {
+  await authStore.login(values)
 }
 </script>
 

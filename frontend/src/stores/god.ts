@@ -35,37 +35,48 @@ export const useGodStore = defineStore('god', {
             })
 
             this.loading = true
-            try {
-                // Call backend
-                // The API expects { prompt: string, n: int }
-                const res = await request.post('/god/generate', {
-                    prompt,
-                    n: 1 
-                })
+            let retries = 0
+            const maxRetries = 2
 
-                // The backend returns List[PersonaResponse]
-                const personas = res.data
+            while (retries <= maxRetries) {
+                try {
+                    // Call backend with extended timeout (120s)
+                    const res = await request.post('/god/generate', {
+                        prompt,
+                        n: 1 
+                    }, {
+                        timeout: 120000
+                    })
 
-                // Add assistant response
-                this.messages.push({
-                    role: 'assistant',
-                    content: `已为您生成 ${personas.length} 位智能体角色。`,
-                    timestamp: Date.now(),
-                    personas: personas
-                })
-                
-                message.success('生成成功')
-            } catch (error) {
-                console.error('God generation failed:', error)
-                this.messages.push({
-                    role: 'assistant',
-                    content: '抱歉，生成失败，请稍后重试。',
-                    timestamp: Date.now()
-                })
-            } finally {
-                this.loading = false
+                    // The backend returns List[PersonaResponse]
+                    const personas = res.data
+
+                    // Add assistant response
+                    this.messages.push({
+                        role: 'assistant',
+                        content: `已为您生成 ${personas.length} 位智能体角色。`,
+                        timestamp: Date.now(),
+                        personas: personas
+                    })
+                    
+                    message.success('生成成功')
+                    break // Success, exit loop
+                } catch (error: any) {
+                    console.error(`God generation attempt ${retries + 1} failed:`, error)
+                    
+                    if (retries === maxRetries) {
+                        // All retries failed
+                        throw error // Re-throw to be caught by the view
+                    }
+                    
+                    retries++
+                    // Wait 1s before retry
+                    await new Promise(resolve => setTimeout(resolve, 1000))
             }
-        },
+        }
+        
+        this.loading = false
+    },
         clearHistory() {
             this.messages = []
         }

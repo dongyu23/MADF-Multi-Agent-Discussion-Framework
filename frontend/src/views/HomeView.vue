@@ -1,5 +1,5 @@
 <template>
-  <div class="dashboard-container">
+  <div class="dashboard-page">
     <div class="welcome-section">
       <h2 class="welcome-title">欢迎回来，{{ authStore.user?.username }}</h2>
       <p class="welcome-subtitle">这里是您的多智能体协作中心，您可以管理智能体、发起讨论或查看实时进展。</p>
@@ -90,8 +90,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.dashboard-container {
-  width: 100%;
+.dashboard-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
 }
 
 .welcome-section {

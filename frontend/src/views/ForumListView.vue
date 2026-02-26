@@ -43,7 +43,12 @@
           </a-card-meta>
           
           <div class="card-footer">
-            <span class="action-text">点击进入讨论 <arrow-right-outlined /></span>
+            <a-space>
+              <a-popconfirm title="确定删除该论坛吗？" @confirm.stop="handleDelete(item.id)">
+                <a-button type="text" danger size="small"><delete-outlined /></a-button>
+              </a-popconfirm>
+              <span class="action-text">点击进入讨论 <arrow-right-outlined /></span>
+            </a-space>
           </div>
         </a-card>
         
@@ -97,6 +102,10 @@
             提示：您可以选择自己创建的智能体，也可以邀请公开的智能体加入。
           </div>
         </a-form-item>
+        
+        <a-form-item label="论坛时长 (分钟)" name="duration">
+            <a-input-number v-model:value="formState.duration" :min="5" :max="120" />
+        </a-form-item>
       </a-form>
     </a-modal>
   </div>
@@ -107,7 +116,7 @@ import { onMounted, reactive, ref, computed } from 'vue'
 import { useForumStore } from '@/stores/forum'
 import { usePersonaStore } from '@/stores/persona'
 import { message } from 'ant-design-vue'
-import { PlusOutlined, ArrowRightOutlined } from '@ant-design/icons-vue'
+import { PlusOutlined, ArrowRightOutlined, DeleteOutlined } from '@ant-design/icons-vue'
 
 const forumStore = useForumStore()
 const personaStore = usePersonaStore()
@@ -116,7 +125,8 @@ const submitting = ref(false)
 
 const formState = reactive({
   topic: '',
-  participant_ids: [] as number[]
+  participant_ids: [] as number[],
+  duration: 30
 })
 
 onMounted(() => {
@@ -132,11 +142,25 @@ const personaOptions = computed(() => {
 })
 
 const getStatusColor = (status: string) => {
-  return status === 'active' ? 'processing' : 'default'
+  switch (status) {
+    case 'running': return 'processing'
+    case 'pending': return 'warning'
+    case 'closed':
+    case 'finished': return 'default'
+    case 'active': return 'processing'
+    default: return 'default'
+  }
 }
 
 const getStatusText = (status: string) => {
-  return status === 'active' ? '进行中' : '已结束'
+  switch (status) {
+    case 'running': return '进行中'
+    case 'pending': return '未开始'
+    case 'closed':
+    case 'finished': return '已结束'
+    case 'active': return '进行中'
+    default: return '未知'
+  }
 }
 
 const getAvatarColor = (topic: string) => {
@@ -153,6 +177,7 @@ const showModal = () => {
   visible.value = true
   formState.topic = ''
   formState.participant_ids = []
+  formState.duration = 30
 }
 
 const handleOk = async () => {
@@ -163,8 +188,7 @@ const handleOk = async () => {
   
   submitting.value = true
   try {
-    await forumStore.createForum(formState.topic, formState.participant_ids)
-    message.success('论坛创建成功')
+    await forumStore.createForum(formState.topic, formState.participant_ids, formState.duration)
     visible.value = false
   } catch (e: unknown) {
     if (e instanceof Error) {
@@ -174,12 +198,17 @@ const handleOk = async () => {
     submitting.value = false
   }
 }
+
+const handleDelete = async (id: number) => {
+    await forumStore.deleteForum(id)
+}
 </script>
 
 <style scoped>
 .forum-list-page {
   max-width: 1200px;
   margin: 0 auto;
+  padding: 24px;
 }
 
 .page-header {
@@ -246,7 +275,8 @@ const handleOk = async () => {
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid #f0f0f0;
-  text-align: right;
+  display: flex;
+  justify-content: flex-end;
   color: #1890ff;
 }
 

@@ -1,8 +1,8 @@
 import time
 import random
-from god import God
-from agent import ModeratorAgent, ParticipantAgent
-from memory import SharedMemory
+from app.agent.god import God
+from app.agent.agent import ModeratorAgent, ParticipantAgent
+from app.agent.memory import SharedMemory
 import sys
 
 def main():

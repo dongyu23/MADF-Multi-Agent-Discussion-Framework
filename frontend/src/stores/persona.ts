@@ -43,12 +43,15 @@ export const usePersonaStore = defineStore('persona', {
       }
     },
     async createPersona(data: CreatePersonaData) {
+      this.loading = true
       try {
         await request.post('/personas/', data)
         await this.fetchPersonas()
       } catch (error) {
         console.error('Failed to create persona:', error)
         throw error
+      } finally {
+        this.loading = false
       }
     },
     async createPresetPersonas() {

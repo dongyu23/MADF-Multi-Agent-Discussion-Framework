@@ -87,16 +87,10 @@ def read_personas(
     db: Session = Depends(get_db),
     skip: int = 0, 
     limit: int = 100,
-    owner_id: int = None
+    current_user: Annotated[User, Depends(get_current_user)] = None
 ):
-    # Add list endpoint
     from app.models import Persona
-    query = db.query(Persona)
-    if owner_id:
-        query = query.filter(Persona.owner_id == owner_id)
-    else:
-        # By default show public personas + maybe?
-        pass
+    query = db.query(Persona).filter(Persona.owner_id == current_user.id)
     return query.offset(skip).limit(limit).all()
 
 @router.get("/{persona_id}", response_model=PersonaResponse)

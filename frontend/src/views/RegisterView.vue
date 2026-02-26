@@ -113,8 +113,8 @@ const validateConfirmPassword = async (_rule: Rule, value: string) => {
   return Promise.resolve()
 }
 
-const onFinish = (values: Record<string, string>) => {
-  authStore.register(values)
+const onFinish = async (values: any) => {
+  await authStore.register(values)
 }
 </script>
 

@@ -1,6 +1,7 @@
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Text, DateTime
 from sqlalchemy.orm import relationship
 from datetime import datetime
+from app.core.time_utils import get_beijing_time
 import json
 
 from app.db.session import Base
@@ -12,7 +13,7 @@ class User(Base):
     username = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
     role = Column(String, default="user", nullable=False) # 'user', 'admin', 'god'
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=get_beijing_time)
 
     personas = relationship("Persona", back_populates="owner", cascade="all, delete-orphan")
     created_forums = relationship("Forum", back_populates="creator", cascade="all, delete-orphan")
@@ -31,7 +32,7 @@ class Persona(Base):
     stance = Column(Text)
     system_prompt = Column(Text)
     is_public = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=get_beijing_time)
 
     owner = relationship("User", back_populates="personas")
     participated_forums = relationship("ForumParticipant", back_populates="persona", cascade="all, delete-orphan")
@@ -45,8 +46,9 @@ class Forum(Base):
     creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     status = Column(String, default="active") # 'active', 'finished'
     summary_history = Column(Text, default="[]")
-    start_time = Column(DateTime, default=datetime.utcnow)
+    start_time = Column(DateTime, default=get_beijing_time)
     end_time = Column(DateTime, nullable=True)
+    duration_minutes = Column(Integer, default=30)
 
     creator = relationship("User", back_populates="created_forums")
     participants = relationship("ForumParticipant", back_populates="forum", cascade="all, delete-orphan")
@@ -72,7 +74,8 @@ class Message(Base):
     speaker_name = Column(String, nullable=False)
     content = Column(Text, nullable=False)
     turn_count = Column(Integer, default=0)
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    thoughts = Column(Text, nullable=True)
+    timestamp = Column(DateTime, default=get_beijing_time)
 
     forum = relationship("Forum", back_populates="messages")
     persona = relationship("Persona", back_populates="messages")
@@ -83,7 +86,7 @@ class Observation(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     forum_id = Column(Integer, ForeignKey("forums.id"), nullable=False)
-    joined_at = Column(DateTime, default=datetime.utcnow)
+    joined_at = Column(DateTime, default=get_beijing_time)
     left_at = Column(DateTime, nullable=True)
 
     user = relationship("User", back_populates="observations")
@@ -96,6 +99,6 @@ class GodLog(Base):
     god_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     action = Column(String, nullable=False)
     details = Column(Text) # JSON string
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    timestamp = Column(DateTime, default=get_beijing_time)
 
     god_user = relationship("User", back_populates="god_logs")

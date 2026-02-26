@@ -3,6 +3,9 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.schemas import UserCreate, UserResponse
 from app.crud import get_user_by_username, create_user
+from app.api.deps import get_current_user
+from app.models import User
+from typing import Annotated
 
 router = APIRouter()
 
@@ -12,6 +15,10 @@ def create_new_user(user: UserCreate, db: Session = Depends(get_db)):
     if db_user:
         raise HTTPException(status_code=400, detail="Username already registered")
     return create_user(db=db, user=user)
+
+@router.get("/me", response_model=UserResponse)
+def read_users_me(current_user: Annotated[User, Depends(get_current_user)]):
+    return current_user
 
 @router.get("/{username}", response_model=UserResponse)
 def read_user(username: str, db: Session = Depends(get_db)):

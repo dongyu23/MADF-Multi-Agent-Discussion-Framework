@@ -9,7 +9,6 @@ import RegisterView from '@/views/RegisterView.vue'
 import PersonaView from '@/views/PersonaView.vue'
 import ForumListView from '@/views/ForumListView.vue'
 import ForumDetailView from '@/views/ForumDetailView.vue'
-import GodAgentView from '@/views/GodAgentView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -41,11 +40,6 @@ const router = createRouter({
           path: 'dashboard',
           name: 'dashboard',
           component: HomeView
-        },
-        {
-          path: 'god',
-          name: 'god',
-          component: GodAgentView
         },
         {
           path: 'personas',

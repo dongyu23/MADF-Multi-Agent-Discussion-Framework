@@ -26,6 +26,10 @@ class ModeratorAgent(BaseAgent):
         2. 简要介绍主题背景。
         3. 介绍在场嘉宾。
         4. 宣布圆桌论坛正式开始。
+
+        **重要要求**：
+        - 请直接输出发言内容，不要包含任何前缀（如“主持人 20:15:20”）。
+        - 不要使用脚本格式，就像你在现场说话一样。
         """
         messages = [
             {"role": "system", "content": self.system_prompt},
@@ -45,6 +49,10 @@ class ModeratorAgent(BaseAgent):
         {msgs_text}
 
         请对以上内容进行简要总结，保留每位发言者的核心观点（精髓）。
+
+        **重要要求**：
+        - 请直接输出总结内容，不要包含任何前缀（如“主持人 20:15:20”）。
+        - 不要使用脚本格式。
         """
         messages = [
             {"role": "system", "content": self.system_prompt},
@@ -64,6 +72,10 @@ class ModeratorAgent(BaseAgent):
         {history_text}
 
         请对整场论坛进行最终总结，梳理主要冲突点和共识，并宣布论坛结束。
+
+        **重要要求**：
+        - 请直接输出总结内容，不要包含任何前缀（如“主持人 20:15:20”）。
+        - 不要使用脚本格式。
         """
         messages = [
             {"role": "system", "content": self.system_prompt},
@@ -77,6 +89,7 @@ class ParticipantAgent(BaseAgent):
         self.title = persona['title']
         self.bio = persona['bio']
         self.theories = persona['theories']
+        self.stance = persona['stance']
         self.priority = 100
         self.private_memory = PrivateMemory(n_participants)
         self.has_spoken = False

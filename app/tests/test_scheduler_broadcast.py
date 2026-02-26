@@ -1,0 +1,72 @@
+import unittest
+from unittest.mock import MagicMock, AsyncMock, patch
+from app.services.forum_scheduler import ForumScheduler
+from app.agent.agent import ParticipantAgent
+
+class TestForumScheduler(unittest.TestCase):
+    def setUp(self):
+        self.scheduler = ForumScheduler()
+        # Mock manager
+        self.patcher = patch('app.services.forum_scheduler.manager')
+        self.mock_manager = self.patcher.start()
+        
+    def tearDown(self):
+        self.patcher.stop()
+
+    def test_agent_speak_broadcasts_chunks(self):
+        # Setup
+        mock_db = MagicMock()
+        forum_id = 1
+        agent = ParticipantAgent("Test Agent", {"system_prompt": "test"}, 1, "test")
+        thought = {"action": "speak"}
+        context = "test context"
+        
+        # Mock speak to return a generator of chunks
+        async def mock_speak(*args):
+            chunks = []
+            for char in "Hello World":
+                chunk = MagicMock()
+                chunk.choices = [MagicMock()]
+                chunk.choices[0].delta.content = char
+                chunks.append(chunk)
+            return chunks
+            
+        agent.speak = mock_speak
+        
+        # Mock participants query
+        mock_p = MagicMock()
+        mock_p.persona.name = "Test Agent"
+        mock_p.persona_id = 123
+        
+        with patch('app.services.forum_scheduler.get_forum_participants', return_value=[mock_p]), \
+             patch('app.services.forum_scheduler.create_message') as mock_create_msg:
+            
+            # Run
+            import asyncio
+            asyncio.run(self.scheduler._agent_speak(mock_db, forum_id, agent, thought, context))
+            
+            # Verify broadcasts
+            # We expect len("Hello World") calls to broadcast_chunk
+            # And 1 call to broadcast_message
+            
+            # Check broadcast_chunk calls (via manager.broadcast)
+            # manager.broadcast is called for chunks AND final message
+            
+            calls = self.mock_manager.broadcast.call_args_list
+            
+            # Filter for chunks
+            chunk_calls = [c for c in calls if c[0][1]['type'] == 'message_chunk']
+            self.assertEqual(len(chunk_calls), len("Hello World"))
+            
+            # Check content of first chunk
+            self.assertEqual(chunk_calls[0][0][1]['data']['content'], 'H')
+            self.assertEqual(chunk_calls[0][0][1]['speaker_name'], "Test Agent")
+            self.assertEqual(chunk_calls[0][0][1]['persona_id'], 123)
+            
+            # Filter for final message
+            final_calls = [c for c in calls if c[0][1]['type'] == 'new_message']
+            self.assertEqual(len(final_calls), 1)
+            self.assertEqual(final_calls[0][0][1]['data']['content'], "Hello World")
+
+if __name__ == '__main__':
+    unittest.main()

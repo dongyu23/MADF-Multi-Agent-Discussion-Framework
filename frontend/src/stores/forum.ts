@@ -25,11 +25,45 @@ export const useForumStore = defineStore('forum', {
     forums: [] as Forum[],
     currentForum: null as Forum | null,
     messages: [] as Message[],
-    ws: null as WebSocket | null,
     loading: false,
     thinking: false
   }),
   actions: {
+    updateStreamingMessage(chunk: { speaker_name: string, content: string, persona_id: number | null, timestamp: number }) {
+        const lastMsg = this.messages[this.messages.length - 1]
+        
+        // Use a composite key or just check speaker + streaming status
+        if (lastMsg && lastMsg.speaker_name === chunk.speaker_name && (lastMsg as any).isStreaming) {
+            lastMsg.content += chunk.content
+        } else {
+            const newMsg: Message = {
+                id: Date.now(), // Temp ID
+                forum_id: this.currentForum?.id || 0,
+                persona_id: chunk.persona_id || 0,
+                speaker_name: chunk.speaker_name,
+                content: chunk.content,
+                timestamp: new Date(chunk.timestamp * 1000).toISOString(),
+            }
+            ;(newMsg as any).isStreaming = true
+            this.messages.push(newMsg)
+        }
+    },
+    addMessage(msg: Message) {
+        // When the full message arrives (type: 'new_message'), replace the streaming one
+        // Match by speaker name AND ensure we are replacing a streaming message
+        const streamingMsgIndex = this.messages.findIndex(m => m.speaker_name === msg.speaker_name && (m as any).isStreaming)
+        
+        if (streamingMsgIndex !== -1) {
+            // Replace streaming message with the final one
+            // Use the backend timestamp from msg, which is now correctly generated
+            this.messages.splice(streamingMsgIndex, 1, msg)
+        } else {
+             const exists = this.messages.find(m => m.id === msg.id)
+             if (!exists) {
+                 this.messages.push(msg)
+             }
+        }
+    },
     async fetchForums() {
       this.loading = true
       try {
@@ -37,7 +71,6 @@ export const useForumStore = defineStore('forum', {
         this.forums = res.data
       } catch (error) {
         console.error('Failed to fetch forums:', error)
-        // Global interceptor handles the error message, but we ensure state is clean
         this.forums = []
       } finally {
         this.loading = false
@@ -65,118 +98,50 @@ export const useForumStore = defineStore('forum', {
         this.messages = []
       }
     },
-    async createForum(topic: string, participantIds: number[]) {
+    async createForum(topic: string, participantIds: number[], duration: number) {
       this.loading = true
       try {
-        await request.post('/forums/', {
+        const res = await request.post('/forums/', {
           topic,
-          participant_ids: participantIds
+          participant_ids: participantIds,
+          duration_minutes: duration
         })
         message.success('论坛创建成功')
         await this.fetchForums()
+        return res.data
       } catch (error) {
         console.error('Failed to create forum:', error)
+        throw error
       } finally {
         this.loading = false
       }
     },
-    connectWebSocket(forumId: number) {
-      if (this.ws) {
-        this.ws.close()
-      }
-      
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-      const host = window.location.host
-      const wsUrl = `${protocol}//${host}/api/v1/forums/${forumId}/ws`
-      
-      console.log('Connecting to WS:', wsUrl)
-      
+    async startForum(id: number) {
       try {
-        this.ws = new WebSocket(wsUrl)
-        
-        this.ws.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data)
-            if (data.type === 'new_message' && data.data) {
-              const exists = this.messages.find(m => m.id === data.data.id)
-              if (!exists) {
-                this.messages.push(data.data)
-              }
-            }
-          } catch (e) {
-            console.error('WS Message Parse Error', e)
-          }
-        }
-        
-        this.ws.onopen = () => {
-          console.log('Connected to Forum WS')
-        }
-        
-        this.ws.onerror = (e) => {
-          console.error('WS Error', e)
-        }
-        
-        this.ws.onclose = () => {
-          console.log('WS Closed')
-        }
-      } catch (e) {
-        console.error('WS Connection Failed', e)
-      }
-    },
-    async sendMessage(forumId: number, content: string, personaId?: number | null, speakerName?: string) {
-      try {
-        await request.post(`/forums/${forumId}/messages`, {
-          forum_id: forumId,
-          content,
-          persona_id: personaId, 
-          speaker_name: speakerName || 'User',
-          turn_count: this.messages.length + 1
-        })
-      } catch (error) {
-        console.error('Failed to send message:', error)
-        throw error // Re-throw to let UI handle if needed
-      }
-    },
-    async triggerAgent(forumId: number, personaId?: number) {
-      if (this.thinking) return
-      this.thinking = true
-      try {
-        const res = await request.post(`/forums/${forumId}/trigger_agent`, {
-          persona_id: personaId
-        })
-        // Optimistically push if returned, though WS should handle it
-        if (res.data) {
-            const exists = this.messages.find(m => m.id === res.data.id)
-            if (!exists) this.messages.push(res.data)
+        await request.post(`/forums/${id}/start`)
+        message.success('论坛已开始')
+        if (this.currentForum && this.currentForum.id === id) {
+            this.currentForum.status = 'running'
         }
       } catch (error) {
-        console.error('Trigger Agent Failed:', error)
-      } finally {
-        this.thinking = false
+        console.error('Failed to start forum:', error)
+        message.error('启动失败')
       }
     },
-    async triggerModerator(forumId: number, action: string = 'auto') {
-      if (this.thinking) return
-      this.thinking = true
+    async deleteForum(id: number) {
       try {
-        const res = await request.post(`/forums/${forumId}/trigger_moderator`, {
-          action
-        })
-        if (res.data) {
-             const exists = this.messages.find(m => m.id === res.data.id)
-             if (!exists) this.messages.push(res.data)
+        await request.delete(`/forums/${id}`)
+        message.success('论坛已删除')
+        if (this.currentForum && this.currentForum.id === id) {
+            this.currentForum = null
         }
+        this.forums = this.forums.filter(f => f.id !== id)
       } catch (error) {
-        console.error('Trigger Moderator Failed:', error)
-      } finally {
-        this.thinking = false
+        console.error('Failed to delete forum:', error)
+        message.error('删除失败')
       }
     },
     leaveForum() {
-      if (this.ws) {
-        this.ws.close()
-        this.ws = null
-      }
       this.messages = []
       this.currentForum = null
       this.thinking = false

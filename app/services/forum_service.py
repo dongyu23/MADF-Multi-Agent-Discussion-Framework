@@ -1,0 +1,85 @@
+from sqlalchemy.orm import Session
+from app.crud import (
+    create_forum, 
+    get_forum, 
+    create_message, 
+    get_forum_messages, 
+    get_persona,
+    delete_forum,
+    get_forum_participants
+)
+from app.schemas import ForumCreate, MessageCreate
+from app.core.websockets import manager
+from app.services.forum_scheduler import scheduler
+from app.agent.agent import ParticipantAgent
+from fastapi import HTTPException
+
+class ForumService:
+    def __init__(self, db: Session):
+        self.db = db
+
+    def create_new_forum(self, forum_in: ForumCreate, creator_id: int):
+        # Validate participants
+        for pid in forum_in.participant_ids:
+            p = get_persona(self.db, pid)
+            if not p:
+                raise HTTPException(status_code=404, detail=f"Persona {pid} not found")
+        
+        return create_forum(self.db, forum_in, creator_id)
+
+    async def start_forum(self, forum_id: int, user_id: int, is_admin: bool = False):
+        forum = get_forum(self.db, forum_id)
+        if not forum:
+            raise HTTPException(status_code=404, detail="Forum not found")
+            
+        if forum.creator_id != user_id and not is_admin:
+            raise HTTPException(status_code=403, detail="Not authorized")
+            
+        if forum.status == "running":
+            raise HTTPException(status_code=400, detail="Forum already running")
+            
+        await scheduler.start_forum(forum_id)
+        return {"status": "started"}
+
+    def delete_forum(self, forum_id: int, user_id: int, is_admin: bool = False):
+        forum = get_forum(self.db, forum_id)
+        if not forum:
+            raise HTTPException(status_code=404, detail="Forum not found")
+            
+        if forum.creator_id != user_id and not is_admin:
+            raise HTTPException(status_code=403, detail="Not authorized")
+            
+        return delete_forum(self.db, forum_id)
+
+    async def post_message(self, forum_id: int, msg_in: MessageCreate):
+        if msg_in.forum_id != forum_id:
+            raise HTTPException(status_code=400, detail="Forum ID mismatch")
+            
+        forum = get_forum(self.db, forum_id)
+        if not forum:
+            raise HTTPException(status_code=404, detail="Forum not found")
+            
+        if msg_in.persona_id:
+            p = get_persona(self.db, msg_in.persona_id)
+            if not p:
+                raise HTTPException(status_code=404, detail="Persona not found")
+        
+        # Calculate turn count if not provided? 
+        # Current logic trusts frontend, but better to count from DB.
+        # messages = get_forum_messages(self.db, forum_id)
+        # msg_in.turn_count = len(messages) + 1
+        
+        new_msg = create_message(self.db, msg_in)
+        
+        await manager.broadcast(forum_id, {
+            "type": "new_message",
+            "data": {
+                "id": new_msg.id,
+                "speaker_name": new_msg.speaker_name,
+                "content": new_msg.content,
+                "persona_id": new_msg.persona_id,
+                "timestamp": new_msg.timestamp.isoformat()
+            }
+        })
+        
+        return new_msg

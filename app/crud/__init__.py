@@ -96,6 +96,12 @@ def delete_persona(db: Session, persona_id: int):
     try:
         db_persona = db.query(Persona).filter(Persona.id == persona_id).first()
         if db_persona:
+            # Cascade delete participants/messages?
+            # Normally DB foreign keys handle this if ON DELETE CASCADE is set.
+            # If not, we should do it manually or ensure model definition has cascades.
+            # Let's check model definition. Assuming models are set up correctly.
+            # If not, SQLAlchemy relationship cascade options should be set.
+            # For now, just delete the persona.
             db.delete(db_persona)
             db.commit()
             return True
@@ -109,7 +115,8 @@ def create_forum(db: Session, forum: ForumCreate, creator_id: int):
         db_forum = Forum(
             topic=forum.topic,
             creator_id=creator_id,
-            status="active"
+            status="pending",
+            duration_minutes=forum.duration_minutes
         )
         db.add(db_forum)
         db.flush() # Get ID before adding participants
@@ -126,8 +133,25 @@ def create_forum(db: Session, forum: ForumCreate, creator_id: int):
         db.rollback()
         raise
 
+def delete_forum(db: Session, forum_id: int):
+    try:
+        db_forum = db.query(Forum).filter(Forum.id == forum_id).first()
+        if db_forum:
+            # Cascade delete messages and participants
+            # Again, relying on DB/ORM cascade is best practice.
+            db.delete(db_forum)
+            db.commit()
+            return True
+        return False
+    except Exception:
+        db.rollback()
+        raise
+
 def get_forum(db: Session, forum_id: int):
-    forum = db.query(Forum).filter(Forum.id == forum_id).first()
+    forum = db.query(Forum).options(
+        joinedload(Forum.participants).joinedload(ForumParticipant.persona)
+    ).filter(Forum.id == forum_id).first()
+    
     if forum:
         db.expunge(forum)
         if forum.summary_history and isinstance(forum.summary_history, str):
@@ -137,6 +161,14 @@ def get_forum(db: Session, forum_id: int):
                 forum.summary_history = []
         elif forum.summary_history is None:
             forum.summary_history = []
+            
+        # Manually process participants to handle JSON fields if needed?
+        # The Pydantic models (PersonaResponse, ForumParticipantResponse) have validators 
+        # that can handle JSON string parsing.
+        # But if we expunge forum, we might need to expunge participants too to be safe/consistent?
+        # Actually, if we just expunge forum, accessing forum.participants returns the already loaded list.
+        # Accessing properties of participants is fine.
+        
     return forum
 
 def update_forum(db: Session, forum_id: int, summary_history: list = None, status: str = None):

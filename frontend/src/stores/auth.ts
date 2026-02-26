@@ -35,7 +35,7 @@ export const useAuthStore = defineStore('auth', {
         this.token = res.data.access_token
         localStorage.setItem('token', this.token || '')
         
-        const userRes = await request.get(`/users/${form.username}`)
+        const userRes = await request.get('/users/me')
         this.user = userRes.data
         localStorage.setItem('user', JSON.stringify(this.user))
         
@@ -60,8 +60,7 @@ export const useAuthStore = defineStore('auth', {
       try {
         await request.post('/auth/register', {
           username: form.username,
-          password: form.password,
-          role: 'user'
+          password: form.password
         })
         message.success('注册成功，正在自动登录...')
         await this.login(form)

@@ -7,11 +7,13 @@ class God:
 
     def generate_personas(self, prompt_text, n=1):
         """
-        Generates n distinct personas based on a natural language prompt.
+        Generates distinct personas based on a natural language prompt.
         The prompt can be a theme or a specific character description.
+        The quantity of personas is determined by the LLM based on the user's description, 
+        defaulting to n if not specified.
         """
         prompt = f"""
-        请你扮演“上帝”的角色，根据用户的描述生成 {n} 位**极具深度、有血有肉的智能体角色**。
+        请你扮演“上帝”的角色，根据用户的描述生成**极具深度、有血有肉的智能体角色**。
 
         【用户描述】：
         {prompt_text}
@@ -20,15 +22,21 @@ class God:
         我们要创造的是真实的人，而不是只会输出观点的机器。每个人物都必须有复杂的背景和深刻的学术积淀。
 
         【要求】：
-        1. **深度生平 (Bio)**：**必须达到300字左右**。
+        1. **数量控制**：
+           - 首先分析【用户描述】中是否明确指定了生成的角色数量（例如“3位”、“三个”等）。
+           - 如果指定了数量，请严格按照该数量生成。
+           - 如果未指定数量，请默认生成 {n} 位角色。
+           - 无论生成多少位，必须输出完整的 JSON 列表。
+
+        2. **深度生平 (Bio)**：**必须达到300字左右**。
            - 包含：早年的教育背景、职业生涯的关键转折点、人生中的重大挫折或高光时刻、以及这些经历如何塑造了他的核心价值观。
            - 必须具体。如果用户指定了特定人物（如“苏格拉底”），请严格基于历史事实；如果是虚构人物，请构建完整的背景故事。
         
-        2. **理论武库 (Theories)**：列出该角色所在领域的 7 个具体理论或概念。这些理论不仅仅是名词，更是他看待世界的透镜。
+        3. **理论武库 (Theories)**：列出该角色所在领域的 7 个具体理论或概念。这些理论不仅仅是名词，更是他看待世界的透镜。
 
-        3. **观点为人服务**：他的立场不是随机生成的，而是他生平和理论的必然结果。
+        4. **观点为人服务**：他的立场不是随机生成的，而是他生平和理论的必然结果。
 
-        请以 JSON 格式输出一个列表，列表包含 {n} 个对象，每个对象包含以下字段：
+        请以 JSON 格式输出一个列表，每个对象包含以下字段：
         - name: 姓名
         - title: 头衔/职业
         - bio: **300字左右的深度生平介绍**
@@ -52,13 +60,13 @@ class God:
             }}
         ]
         """
-
+        
         messages = [
             {"role": "system", "content": "你是一个能够创造复杂、立体、真实人类角色的上帝系统。拒绝生成脸谱化的NPC。"},
             {"role": "user", "content": prompt}
         ]
 
-        print(f"正在根据描述生成 {n} 位嘉宾角色...")
+        print(f"正在根据描述生成嘉宾角色...")
         response = get_chat_completion(messages, json_mode=True)
         if response and response.choices:
             content = response.choices[0].message.content
