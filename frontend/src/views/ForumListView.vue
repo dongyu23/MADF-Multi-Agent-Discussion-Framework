@@ -87,7 +87,7 @@
             size="large"
             style="width: 100%"
           >
-            <template #option="{ label, value }">
+            <template #option="{ label }">
                <div style="display: flex; justify-content: space-between">
                  <span>{{ label }}</span>
                </div>

@@ -14,6 +14,17 @@
         </a-tooltip>
       </div>
     </div>
+
+    <!-- Moderator Controls -->
+    <div class="moderator-controls" v-if="true"> <!-- Everyone for dev -->
+      <span class="control-label">主持人控制：</span>
+      <a-space>
+        <a-button size="small" type="primary" ghost @click="handleModerator('auto')" :loading="forumStore.thinking">自动控场</a-button>
+        <a-button size="small" @click="handleModerator('start')" :loading="forumStore.thinking">开场</a-button>
+        <a-button size="small" @click="handleModerator('summary')" :loading="forumStore.thinking">阶段总结</a-button>
+        <a-button size="small" danger @click="handleModerator('end')" :loading="forumStore.thinking">结束讨论</a-button>
+      </a-space>
+    </div>
     
     <div class="chat-area" ref="chatAreaRef">
       <div v-if="forumStore.loading" class="loading-state">
@@ -59,14 +70,27 @@
           :options="roleOptions"
         >
         </a-select>
+        
+        <a-button 
+          v-if="selectedPersonaId"
+          type="primary"
+          ghost
+          size="small"
+          @click="triggerAgent"
+          :loading="forumStore.thinking"
+          style="margin-left: 12px"
+        >
+          <robot-outlined /> 让 TA 思考并发言
+        </a-button>
       </div>
       
       <div class="input-box">
         <a-textarea
           v-model:value="input"
-          placeholder="输入您的观点... (Ctrl + Enter 发送)"
+          :placeholder="forumStore.thinking ? '正在思考中...' : '输入您的观点... (Ctrl + Enter 发送)'"
           :auto-size="{ minRows: 2, maxRows: 6 }"
           @keydown.ctrl.enter.prevent="handleSend"
+          :disabled="forumStore.thinking"
         />
         <div class="send-btn-wrapper">
           <a-button type="primary" @click="handleSend" :disabled="!input.trim()">
@@ -87,7 +111,8 @@ import { useAuthStore } from '@/stores/auth'
 import { 
   ArrowLeftOutlined, 
   TeamOutlined, 
-  SendOutlined 
+  SendOutlined,
+  RobotOutlined
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -163,13 +188,48 @@ const handleSend = async () => {
   try {
     await forumStore.sendMessage(forumId, input.value, selectedPersonaId.value || null, speaker)
     input.value = ''
+    scrollToBottom()
   } catch (e) {
     // Error handled globally or show toast
+  }
+}
+
+const handleModerator = async (action: string) => {
+  try {
+    await forumStore.triggerModerator(forumId, action)
+    scrollToBottom()
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+const triggerAgent = async () => {
+  if (!selectedPersonaId.value) return
+  try {
+    await forumStore.triggerAgent(forumId, selectedPersonaId.value)
+    scrollToBottom()
+  } catch (e) {
+    console.error(e)
   }
 }
 </script>
 
 <style scoped>
+.moderator-controls {
+  padding: 8px 24px;
+  background: #fafafa;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.control-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #595959;
+}
+
 .forum-detail-container {
   display: flex;
   flex-direction: column;

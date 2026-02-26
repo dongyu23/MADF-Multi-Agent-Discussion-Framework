@@ -44,6 +44,7 @@ class Forum(Base):
     topic = Column(String, nullable=False)
     creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     status = Column(String, default="active") # 'active', 'finished'
+    summary_history = Column(Text, default="[]")
     start_time = Column(DateTime, default=datetime.utcnow)
     end_time = Column(DateTime, nullable=True)
 
@@ -57,6 +58,7 @@ class ForumParticipant(Base):
 
     forum_id = Column(Integer, ForeignKey("forums.id"), primary_key=True)
     persona_id = Column(Integer, ForeignKey("personas.id"), primary_key=True)
+    thoughts_history = Column(Text, default="[]")
 
     forum = relationship("Forum", back_populates="participants")
     persona = relationship("Persona", back_populates="participated_forums")

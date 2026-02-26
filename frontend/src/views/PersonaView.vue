@@ -26,6 +26,7 @@
               class="persona-card"
             >
               <template #actions>
+                <eye-outlined key="view" @click="showDetails(persona)" />
                 <edit-outlined key="edit" @click="showModal(persona)" />
                 <a-popconfirm
                   title="确定要删除这个智能体吗？"
@@ -45,7 +46,10 @@
                 </template>
               </a-card-meta>
               <div class="persona-content">
-                <p class="bio">{{ persona.bio || '暂无简介' }}</p>
+                <p class="bio" :title="persona.bio">{{ persona.bio || '暂无简介' }}</p>
+                <div class="stance" v-if="persona.stance">
+                  <span class="label">立场:</span> {{ persona.stance }}
+                </div>
                 <div class="tags">
                   <a-tag v-if="persona.is_public" color="green">公开</a-tag>
                   <a-tag v-else color="blue">私有</a-tag>
@@ -71,6 +75,12 @@
           row-key="id"
         >
           <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'bio'">
+              <span :title="record.bio">{{ record.bio }}</span>
+            </template>
+            <template v-if="column.key === 'stance'">
+              <span :title="record.stance">{{ record.stance }}</span>
+            </template>
             <template v-if="column.key === 'theories'">
               <a-tag v-for="tag in record.theories" :key="tag">{{ tag }}</a-tag>
             </template>
@@ -81,6 +91,7 @@
             </template>
             <template v-if="column.key === 'action'">
               <a-space>
+                <a-button type="link" size="small" @click="showDetails(record)">详情</a-button>
                 <a-button type="link" size="small" @click="showModal(record)">编辑</a-button>
                 <a-popconfirm title="确定要删除吗？" @confirm="handleDelete(record.id)">
                   <a-button type="link" size="small" danger>删除</a-button>
@@ -150,6 +161,32 @@
         </a-form-item>
       </a-form>
     </a-modal>
+
+    <a-drawer
+      v-model:open="detailsVisible"
+      title="智能体详情"
+      placement="right"
+      width="600"
+    >
+      <template v-if="currentPersona">
+        <a-descriptions bordered :column="1">
+          <a-descriptions-item label="名称">{{ currentPersona.name }}</a-descriptions-item>
+          <a-descriptions-item label="头衔">{{ currentPersona.title }}</a-descriptions-item>
+          <a-descriptions-item label="核心立场">{{ currentPersona.stance }}</a-descriptions-item>
+          <a-descriptions-item label="理论标签">
+            <a-tag v-for="tag in currentPersona.theories" :key="tag">{{ tag }}</a-tag>
+          </a-descriptions-item>
+          <a-descriptions-item label="简介">
+            <div style="white-space: pre-wrap;">{{ currentPersona.bio }}</div>
+          </a-descriptions-item>
+          <a-descriptions-item label="系统提示词">
+            <div style="white-space: pre-wrap; font-family: monospace; background: #f5f5f5; padding: 8px; border-radius: 4px;">
+              {{ currentPersona.system_prompt }}
+            </div>
+          </a-descriptions-item>
+        </a-descriptions>
+      </template>
+    </a-drawer>
   </div>
 </template>
 
@@ -161,22 +198,27 @@ import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
-  ThunderboltOutlined
+  ThunderboltOutlined,
+  EyeOutlined
 } from '@ant-design/icons-vue'
 
 const personaStore = usePersonaStore()
 const visible = ref(false)
+const detailsVisible = ref(false)
 const submitting = ref(false)
 const editingId = ref<number | null>(null)
 const activeTab = ref('grid')
 const presetLoading = ref(false)
+const currentPersona = ref<Persona | null>(null)
 
 const columns = [
-  { title: '名称', dataIndex: 'name', key: 'name' },
-  { title: '头衔', dataIndex: 'title', key: 'title' },
-  { title: '理论标签', dataIndex: 'theories', key: 'theories' },
-  { title: '可见性', dataIndex: 'is_public', key: 'is_public' },
-  { title: '操作', key: 'action', width: 150 }
+  { title: '名称', dataIndex: 'name', key: 'name', width: 120 },
+  { title: '头衔', dataIndex: 'title', key: 'title', width: 120 },
+  { title: '简介', dataIndex: 'bio', key: 'bio', ellipsis: true, width: 200 },
+  { title: '核心立场', dataIndex: 'stance', key: 'stance', width: 150 },
+  { title: '理论标签', dataIndex: 'theories', key: 'theories', width: 200 },
+  { title: '可见性', dataIndex: 'is_public', key: 'is_public', width: 80 },
+  { title: '操作', key: 'action', width: 180 }
 ]
 
 const formState = reactive({
@@ -258,6 +300,11 @@ const handleDelete = async (id: number) => {
   }
 }
 
+const showDetails = (persona: Persona) => {
+  currentPersona.value = persona
+  detailsVisible.value = true
+}
+
 const handleCreatePreset = async () => {
     presetLoading.value = true
     try {
@@ -334,6 +381,20 @@ const handleCreatePreset = async () => {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   margin-bottom: 8px;
+}
+
+.stance {
+  font-size: 13px;
+  color: rgba(0,0,0,0.65);
+  margin-bottom: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stance .label {
+  font-weight: 500;
+  color: rgba(0,0,0,0.85);
 }
 
 .tags {

@@ -20,6 +20,13 @@
           </router-link>
         </a-menu-item>
         
+        <a-menu-item key="god">
+          <router-link to="/god">
+            <thunderbolt-outlined />
+            <span>上帝模式</span>
+          </router-link>
+        </a-menu-item>
+
         <a-menu-item key="personas">
           <router-link to="/personas">
             <team-outlined />
@@ -90,7 +97,8 @@ import {
   DashboardOutlined,
   TeamOutlined,
   CommentOutlined,
-  ToolOutlined
+  ToolOutlined,
+  ThunderboltOutlined
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -100,6 +108,7 @@ const collapsed = ref(false)
 
 const selectedKeys = computed(() => {
   if (route.path === '/' || route.path.startsWith('/dashboard')) return ['dashboard']
+  if (route.path.startsWith('/god')) return ['god']
   if (route.path.startsWith('/personas')) return ['personas']
   if (route.path.startsWith('/forums')) return ['forums']
   if (route.path.startsWith('/test')) return ['test']

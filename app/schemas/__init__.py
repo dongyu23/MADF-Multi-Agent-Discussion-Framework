@@ -1,4 +1,4 @@
-from typing import List, Optional, Any, Union
+from typing import List, Optional, Any, Union, Dict
 from pydantic import BaseModel, ConfigDict, field_validator
 from datetime import datetime
 import json
@@ -59,7 +59,10 @@ class PersonaResponse(PersonaBase):
     def parse_theories(cls, v: Any) -> List[str]:
         if isinstance(v, str):
             try:
-                return json.loads(v)
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return parsed
+                return []
             except json.JSONDecodeError:
                 return []
         elif v is None:
@@ -73,14 +76,59 @@ class ForumBase(BaseModel):
 class ForumCreate(ForumBase):
     participant_ids: List[int]
 
+class ForumParticipantResponse(BaseModel):
+    persona_id: int
+    thoughts_history: Optional[Union[List[Any], str]] = [] # Changed from List[str] to List[Any] to support dicts
+    persona: Optional[PersonaResponse] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+    @field_validator('thoughts_history', mode='before')
+    @classmethod
+    def parse_thoughts_history(cls, v: Any) -> List[Any]:
+        if isinstance(v, str):
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return parsed
+                # If it's a dict (single thought), wrap in list? Or return empty?
+                # Based on log, it seems to be a list of dicts.
+                return []
+            except json.JSONDecodeError:
+                return []
+        elif isinstance(v, list):
+            return v
+        elif v is None:
+            return []
+        return [v] if v else []
+
 class ForumResponse(ForumBase):
     id: int
     creator_id: int
     status: str
     start_time: datetime
     end_time: Optional[datetime] = None
+    summary_history: Optional[Union[List[Any], str]] = [] # Changed to List[Any] for flexibility
+    participants: Optional[List[ForumParticipantResponse]] = []
 
     model_config = ConfigDict(from_attributes=True)
+
+    @field_validator('summary_history', mode='before')
+    @classmethod
+    def parse_summary_history(cls, v: Any) -> List[Any]:
+        if isinstance(v, str):
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return parsed
+                return []
+            except json.JSONDecodeError:
+                return []
+        elif isinstance(v, list):
+            return v
+        elif v is None:
+            return []
+        return [v] if v else []
 
 # --- Message Schemas ---
 class MessageBase(BaseModel):
@@ -99,3 +147,13 @@ class MessageResponse(MessageBase):
     timestamp: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class TriggerAgentRequest(BaseModel):
+    persona_id: Optional[int] = None
+
+class TriggerModeratorRequest(BaseModel):
+    action: str = "auto"  # auto, opening, summary, closing
+
+class GodGenerateRequest(BaseModel):
+    prompt: str
+    n: int = 1
