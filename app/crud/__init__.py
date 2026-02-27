@@ -115,6 +115,7 @@ def create_forum(db: Session, forum: ForumCreate, creator_id: int):
         db_forum = Forum(
             topic=forum.topic,
             creator_id=creator_id,
+            moderator_id=forum.moderator_id,
             status="pending",
             duration_minutes=forum.duration_minutes
         )
@@ -149,7 +150,8 @@ def delete_forum(db: Session, forum_id: int):
 
 def get_forum(db: Session, forum_id: int):
     forum = db.query(Forum).options(
-        joinedload(Forum.participants).joinedload(ForumParticipant.persona)
+        joinedload(Forum.participants).joinedload(ForumParticipant.persona),
+        joinedload(Forum.moderator)
     ).filter(Forum.id == forum_id).first()
     
     if forum:
@@ -260,6 +262,7 @@ def create_message(db: Session, message: MessageCreate):
         db_message = Message(
             forum_id=message.forum_id,
             persona_id=message.persona_id,
+            moderator_id=message.moderator_id,
             speaker_name=message.speaker_name,
             content=message.content,
             turn_count=message.turn_count

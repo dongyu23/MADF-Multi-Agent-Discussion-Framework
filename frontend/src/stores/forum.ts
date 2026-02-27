@@ -6,18 +6,41 @@ export interface Message {
   id: number
   forum_id: number
   persona_id: number
+  moderator_id?: number | null
   speaker_name: string
   content: string
   timestamp: string
+}
+
+export interface Moderator {
+  id: number
+  name: string
+  title: string
+  bio: string
+  system_prompt?: string
+  greeting_template?: string
+  closing_template?: string
+  summary_template?: string
+  creator_id: number
+  created_at: string
 }
 
 export interface Forum {
   id: number
   topic: string
   creator_id: number
+  moderator_id?: number | null
+  moderator?: Moderator | null
   status: string
   start_time: string
   summary_history: string[]
+}
+
+export interface SystemLog {
+  timestamp: string
+  level: 'info' | 'warning' | 'error' | 'thought' | 'speech'
+  content: string
+  source?: string
 }
 
 export const useForumStore = defineStore('forum', {
@@ -25,44 +48,91 @@ export const useForumStore = defineStore('forum', {
     forums: [] as Forum[],
     currentForum: null as Forum | null,
     messages: [] as Message[],
+    moderators: [] as Moderator[],
+    systemLogs: [] as SystemLog[],
     loading: false,
     thinking: false
   }),
   actions: {
-    updateStreamingMessage(chunk: { speaker_name: string, content: string, persona_id: number | null, timestamp: number }) {
-        const lastMsg = this.messages[this.messages.length - 1]
+    async fetchSystemLogs(forumId: number) {
+      try {
+        const res = await request.get(`/forums/${forumId}/logs`)
+        this.systemLogs = res.data
+      } catch (error) {
+        console.error('Failed to fetch system logs:', error)
+      }
+    },
+    addSystemLog(log: SystemLog) {
+        this.systemLogs.push(log)
+    },
+    updateStreamingMessage(chunk: { 
+        speaker_name: string, 
+        content: string, 
+        persona_id: number | null, 
+        moderator_id?: number | null, 
+        stream_id?: string, 
+        timestamp: string 
+    }) {
+        // Robust logic: Use stream_id if available to find the message
+        // If stream_id is missing, fallback to last message match (legacy behavior)
         
-        // Use a composite key or just check speaker + streaming status
-        if (lastMsg && lastMsg.speaker_name === chunk.speaker_name && (lastMsg as any).isStreaming) {
-            lastMsg.content += chunk.content
+        let targetMsg: Message | undefined
+        
+        if (chunk.stream_id) {
+            targetMsg = this.messages.find(m => (m as any).stream_id === chunk.stream_id)
         } else {
+            // Fallback: Check last message
+            const lastMsg = this.messages[this.messages.length - 1]
+            if (lastMsg && lastMsg.speaker_name === chunk.speaker_name && (lastMsg as any).isStreaming) {
+                targetMsg = lastMsg
+            }
+        }
+        
+        if (targetMsg) {
+            targetMsg.content += chunk.content
+        } else {
+            // Start new streaming message
             const newMsg: Message = {
-                id: Date.now(), // Temp ID
+                id: Date.now(), // Temp ID, will be replaced by final message
                 forum_id: this.currentForum?.id || 0,
                 persona_id: chunk.persona_id || 0,
+                moderator_id: chunk.moderator_id || null,
                 speaker_name: chunk.speaker_name,
                 content: chunk.content,
-                timestamp: new Date(chunk.timestamp * 1000).toISOString(),
+                timestamp: chunk.timestamp,
             }
             ;(newMsg as any).isStreaming = true
+            ;(newMsg as any).stream_id = chunk.stream_id // Store stream_id for future chunks
             this.messages.push(newMsg)
         }
     },
-    addMessage(msg: Message) {
+    addMessage(msg: Message & { stream_id?: string }) {
         // When the full message arrives (type: 'new_message'), replace the streaming one
-        // Match by speaker name AND ensure we are replacing a streaming message
-        const streamingMsgIndex = this.messages.findIndex(m => m.speaker_name === msg.speaker_name && (m as any).isStreaming)
+        // Match by stream_id if available, otherwise fallback
+        
+        let streamingMsgIndex = -1
+        
+        if (msg.stream_id) {
+            streamingMsgIndex = this.messages.findIndex(m => (m as any).stream_id === msg.stream_id)
+        }
+        
+        // Fallback match if stream_id not found or not provided
+        if (streamingMsgIndex === -1) {
+             streamingMsgIndex = this.messages.findIndex(m => m.speaker_name === msg.speaker_name && (m as any).isStreaming)
+        }
         
         if (streamingMsgIndex !== -1) {
             // Replace streaming message with the final one
-            // Use the backend timestamp from msg, which is now correctly generated
             this.messages.splice(streamingMsgIndex, 1, msg)
         } else {
+             // Check if message already exists by ID to prevent duplicates
              const exists = this.messages.find(m => m.id === msg.id)
              if (!exists) {
                  this.messages.push(msg)
              }
         }
+        
+        // Auto-scroll logic could be triggered here or in component watcher
     },
     async fetchForums() {
       this.loading = true
@@ -98,12 +168,22 @@ export const useForumStore = defineStore('forum', {
         this.messages = []
       }
     },
-    async createForum(topic: string, participantIds: number[], duration: number) {
+    async fetchModerators() {
+      try {
+        const res = await request.get('/moderators/')
+        this.moderators = res.data
+      } catch (error) {
+        console.error('Failed to fetch moderators:', error)
+        this.moderators = []
+      }
+    },
+    async createForum(topic: string, participantIds: number[], duration: number, moderatorId?: number) {
       this.loading = true
       try {
         const res = await request.post('/forums/', {
           topic,
           participant_ids: participantIds,
+          moderator_id: moderatorId,
           duration_minutes: duration
         })
         message.success('论坛创建成功')
@@ -143,6 +223,7 @@ export const useForumStore = defineStore('forum', {
     },
     leaveForum() {
       this.messages = []
+      this.systemLogs = []
       this.currentForum = null
       this.thinking = false
       this.loading = false

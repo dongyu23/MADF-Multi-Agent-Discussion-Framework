@@ -9,9 +9,10 @@ class BaseAgent:
 
 
 class ModeratorAgent(BaseAgent):
-    def __init__(self, theme):
+    def __init__(self, theme, name="主持人", system_prompt=None):
         self.theme = theme
-        super().__init__("主持人", "你是一场圆桌论坛的专业主持人。你的职责是引导话题、总结发言、并控制流程。")
+        default_prompt = "你是一场圆桌论坛的专业主持人。你的职责是引导话题、总结发言、并控制流程。"
+        super().__init__(name, system_prompt or default_prompt)
 
     def opening(self, guests):
         guest_intros = "\n".join([f"- {g['name']} ({g['title']}): {g['stance']}" for g in guests])
@@ -71,7 +72,13 @@ class ModeratorAgent(BaseAgent):
         论坛时间已到。以下是本次论坛的各个阶段总结：
         {history_text}
 
-        请对整场论坛进行最终总结，梳理主要冲突点和共识，并宣布论坛结束。
+        请对整场论坛进行最终总结，且必须严格包含以下四个部分：
+        1. **议题脉络**：梳理讨论的发展过程。
+        2. **共识**：大家达成一致的观点。
+        3. **分歧**：大家争论不休的观点。
+        4. **未解决问题**：留待未来探讨的问题。
+
+        最后宣布论坛结束。
 
         **重要要求**：
         - 请直接输出总结内容，不要包含任何前缀（如“主持人 20:15:20”）。
@@ -118,14 +125,17 @@ class ParticipantAgent(BaseAgent):
         **不要使用通用的官方的逻辑（如利弊分析），不要和稀泥，不要攻击他人。**
         **请从你的理论武库中挑选1-2个理论作为切入点。**
 
-        要求输出 JSON 格式，包含：
-        - "previous": "你之前的人是什么观点？20字左右"
-        - "mind": "你的内心戏是什么？结合你的生平和理论，以“我”为主语，50字左右"
-        - "theory_used": "你打算引用的理论"
-        - "benefit": "你的发言能给听众带来什么收获？10字左右"
-        - "action": 若你想发言，填 "apply_to_speak"；否则填 "listen"。
+        请进行一段自由的内心独白（Inner Monologue），表达你对当前讨论的真实看法、情感反应以及是否想要发言的冲动。
+        你可以带有个人情绪，可以偏激，可以热情，切忌机械化。
 
-        注意：你不是在表达观点，你是在**成为一个真实的有血有肉的自己**。
+        最后，请明确给出你的决策：是申请发言（APPLY_SPEAK）还是继续倾听（LISTEN）。
+
+        请严格按照以下格式输出：
+        DECISION: [APPLY_SPEAK | LISTEN]
+        INNER_MONOLOGUE: [你的内心独白内容]
+        THEORY_USED: [引用的理论，如果没有则填无]
+        PREVIOUS_VIEW: [对前一个发言者的简要看法]
+        BENEFIT: [如果发言，你的发言能带来什么新视角]
         """
         
         messages = [
@@ -133,10 +143,54 @@ class ParticipantAgent(BaseAgent):
             {"role": "user", "content": prompt}
         ]
         
-        response = get_chat_completion(messages, json_mode=True)
+        response = get_chat_completion(messages) # No json_mode=True, use text parsing
         if response:
-            return parse_json_from_response(response.choices[0].message.content)
+            content = response.choices[0].message.content
+            return self._parse_think_response(content)
         return None
+
+    def _parse_think_response(self, content):
+        result = {
+            "action": "listen",
+            "mind": "",
+            "theory_used": "",
+            "previous": "",
+            "benefit": ""
+        }
+        try:
+            lines = content.strip().split('\n')
+            current_key = None
+            
+            for line in lines:
+                line = line.strip()
+                if not line: continue
+                
+                if line.startswith("DECISION:"):
+                    action_str = line.split(":", 1)[1].strip()
+                    if "APPLY_SPEAK" in action_str:
+                        result["action"] = "apply_to_speak"
+                    else:
+                        result["action"] = "listen"
+                elif line.startswith("INNER_MONOLOGUE:"):
+                    current_key = "mind"
+                    result["mind"] = line.split(":", 1)[1].strip()
+                elif line.startswith("THEORY_USED:"):
+                    current_key = "theory_used"
+                    result["theory_used"] = line.split(":", 1)[1].strip()
+                elif line.startswith("PREVIOUS_VIEW:"):
+                    current_key = "previous"
+                    result["previous"] = line.split(":", 1)[1].strip()
+                elif line.startswith("BENEFIT:"):
+                    current_key = "benefit"
+                    result["benefit"] = line.split(":", 1)[1].strip()
+                elif current_key:
+                    # Append continuation lines
+                    result[current_key] += " " + line
+            
+            return result
+        except Exception as e:
+            # Fallback
+            return result
 
     def speak(self, thought, context):
         """

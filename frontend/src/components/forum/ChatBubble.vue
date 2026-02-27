@@ -1,14 +1,22 @@
 <template>
-  <div class="message-item" :class="{ 'message-self': isSelf }">
+  <div class="message-item" :class="{ 'message-self': isSelf, 'message-moderator': isModerator }">
     <div class="message-avatar">
       <a-avatar :style="{ backgroundColor: avatarColor }" size="large">
-        {{ speakerName[0] }}
+        <template #icon v-if="isModerator">
+          <user-outlined />
+        </template>
+        <span v-if="!isModerator">
+          {{ speakerName[0] }}
+        </span>
       </a-avatar>
     </div>
     
     <div class="message-content-wrapper">
       <div class="message-info">
-        <span class="speaker-name">{{ speakerName }}</span>
+        <span class="speaker-name">
+          {{ speakerName }}
+          <a-tag v-if="isModerator" color="gold" style="margin-left: 4px; font-size: 10px; line-height: 14px; height: 16px; padding: 0 4px;">主持人</a-tag>
+        </span>
         <span class="time">{{ formatTime(timestamp) }}</span>
       </div>
       
@@ -24,18 +32,23 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { LoadingOutlined } from '@ant-design/icons-vue'
+import { LoadingOutlined, UserOutlined } from '@ant-design/icons-vue'
 
 const props = defineProps<{
   speakerName: string
   content: string
   timestamp: string
   isSelf: boolean
+  moderatorId?: number | null
 }>()
 
+const isModerator = computed(() => {
+  // If moderatorId is present, it's a moderator message
+  // Or check name if ID is missing (legacy)
+  return !!props.moderatorId || props.speakerName.includes('主持人')
+})
+
 const isStreaming = computed(() => {
-    // We can pass a prop or check if content is changing?
-    // For now, assume parent handles it.
     return false
 })
 
@@ -46,6 +59,7 @@ const formatTime = (isoString: string) => {
 }
 
 const avatarColor = computed(() => {
+  if (isModerator.value) return '#faad14' // Gold for moderator
   const colors = ['#f56a00', '#7265e6', '#ffbf00', '#00a2ae', '#1890ff', '#52c41a', '#eb2f96']
   let hash = 0
   for (let i = 0; i < props.speakerName.length; i++) {
@@ -81,10 +95,13 @@ const avatarColor = computed(() => {
   margin-bottom: 4px;
   font-size: 12px;
   color: #8c8c8c;
+  display: flex;
+  align-items: center;
 }
 
 .message-self .message-info {
   text-align: right;
+  flex-direction: row-reverse;
 }
 
 .message-info .time {
@@ -116,5 +133,11 @@ const avatarColor = computed(() => {
 
 .message-item:not(.message-self) .message-bubble {
   border-radius: 0 8px 8px 8px;
+}
+
+/* Moderator specific styles */
+.message-moderator .message-bubble {
+  background: #fffbe6; /* Light gold background */
+  border: 1px solid #ffe58f;
 }
 </style>

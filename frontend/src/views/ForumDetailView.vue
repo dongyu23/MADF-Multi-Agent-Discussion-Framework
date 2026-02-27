@@ -25,9 +25,9 @@
                     <delete-outlined /> 删除
                 </a-button>
             </a-popconfirm>
-            <a-tooltip title="查看参与者">
-              <team-outlined style="font-size: 18px; cursor: pointer" />
-            </a-tooltip>
+            <a-button @click="showParticipantModal">
+              <team-outlined /> 查看参与者
+            </a-button>
         </a-space>
       </div>
     </div>
@@ -43,6 +43,25 @@
       :duration-minutes="forumStore.currentForum.duration_minutes || 30" 
       :status="forumStore.currentForum.status"
     />
+
+    <!-- Participant & Status Modal -->
+    <a-modal
+      v-model:open="isParticipantModalVisible"
+      title="参与者与系统状态"
+      width="800px"
+      :footer="null"
+    >
+      <div class="modal-content">
+        <div class="modal-section">
+          <h3>参与者列表</h3>
+          <ParticipantList />
+        </div>
+        <div class="modal-section">
+          <h3>系统运行日志</h3>
+          <SystemLogConsole />
+        </div>
+      </div>
+    </a-modal>
   </div>
 </template>
 
@@ -54,6 +73,9 @@ import { usePersonaStore } from '@/stores/persona'
 import { useAuthStore } from '@/stores/auth'
 import { useForumWebSocket } from '@/composables/useForumWebSocket'
 import MessageList from '@/components/forum/MessageList.vue'
+import ForumTimer from '@/components/forum/ForumTimer.vue'
+import ParticipantList from '@/components/forum/ParticipantList.vue'
+import SystemLogConsole from '@/components/forum/SystemLogConsole.vue'
 import { 
   ArrowLeftOutlined, 
   TeamOutlined, 
@@ -68,8 +90,13 @@ const authStore = useAuthStore()
 const router = useRouter()
 
 const starting = ref(false)
+const isParticipantModalVisible = ref(false)
 const forumId = Number(route.params.id)
 const { connect, disconnect } = useForumWebSocket(forumId)
+
+const showParticipantModal = () => {
+  isParticipantModalVisible.value = true
+}
 
 onMounted(async () => {
   await forumStore.fetchForum(forumId)

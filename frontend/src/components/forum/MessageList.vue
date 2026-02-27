@@ -12,6 +12,7 @@
         :content="msg.content"
         :timestamp="msg.timestamp"
         :is-self="isSelf(msg)"
+        :moderator-id="msg.moderator_id"
       />
     </div>
     <div ref="bottomRef"></div>

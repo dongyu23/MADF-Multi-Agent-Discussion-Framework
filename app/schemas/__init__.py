@@ -69,12 +69,38 @@ class PersonaResponse(PersonaBase):
             return []
         return v
 
+# --- Moderator Schemas ---
+class ModeratorBase(BaseModel):
+    name: str
+    title: Optional[str] = "主持人"
+    bio: Optional[str] = None
+    system_prompt: Optional[str] = None
+    greeting_template: Optional[str] = None
+    closing_template: Optional[str] = None
+    summary_template: Optional[str] = None
+
+class ModeratorCreate(ModeratorBase):
+    pass
+
+class ModeratorUpdate(ModeratorBase):
+    pass
+
+class ModeratorResponse(ModeratorBase):
+    id: int
+    creator_id: int
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+from .system_log import SystemLogCreate, SystemLogResponse
+
 # --- Forum Schemas ---
 class ForumBase(BaseModel):
     topic: str
 
 class ForumCreate(ForumBase):
     participant_ids: List[int]
+    moderator_id: Optional[int] = None # Optional for backward compatibility (can use default)
     duration_minutes: int = 30
 
 class ForumParticipantResponse(BaseModel):
@@ -106,12 +132,14 @@ class ForumParticipantResponse(BaseModel):
 class ForumResponse(ForumBase):
     id: int
     creator_id: int
+    moderator_id: Optional[int] = None
     status: str
     start_time: datetime
     end_time: Optional[datetime] = None
     duration_minutes: Optional[int] = 30
     summary_history: Optional[Union[List[Any], str]] = [] # Changed to List[Any] for flexibility
     participants: Optional[List[ForumParticipantResponse]] = []
+    moderator: Optional[ModeratorResponse] = None # Include moderator info
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -141,11 +169,13 @@ class MessageBase(BaseModel):
 class MessageCreate(MessageBase):
     forum_id: int
     persona_id: Optional[int] = None
+    moderator_id: Optional[int] = None
 
 class MessageResponse(MessageBase):
     id: int
     forum_id: int
     persona_id: Optional[int]
+    moderator_id: Optional[int] = None
     timestamp: datetime
 
     model_config = ConfigDict(from_attributes=True)

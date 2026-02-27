@@ -78,6 +78,17 @@
           />
         </a-form-item>
         
+        <a-form-item label="主持人" name="moderator_id">
+          <a-select
+            v-model:value="formState.moderator_id"
+            placeholder="选择主持人（默认：系统默认主持人）"
+            :options="moderatorOptions"
+            allow-clear
+            size="large"
+          >
+          </a-select>
+        </a-form-item>
+
         <a-form-item
           label="邀请参与者"
           name="participant_ids"
@@ -126,12 +137,21 @@ const submitting = ref(false)
 const formState = reactive({
   topic: '',
   participant_ids: [] as number[],
+  moderator_id: undefined as number | undefined,
   duration: 30
 })
 
 onMounted(() => {
   forumStore.fetchForums()
+  forumStore.fetchModerators()
   personaStore.fetchPersonas()
+})
+
+const moderatorOptions = computed(() => {
+  return forumStore.moderators.map(m => ({
+    label: m.name,
+    value: m.id
+  }))
 })
 
 const personaOptions = computed(() => {
@@ -177,6 +197,7 @@ const showModal = () => {
   visible.value = true
   formState.topic = ''
   formState.participant_ids = []
+  formState.moderator_id = undefined
   formState.duration = 30
 }
 
@@ -188,7 +209,7 @@ const handleOk = async () => {
   
   submitting.value = true
   try {
-    await forumStore.createForum(formState.topic, formState.participant_ids, formState.duration)
+    await forumStore.createForum(formState.topic, formState.participant_ids, formState.duration, formState.moderator_id)
     visible.value = false
   } catch (e: unknown) {
     if (e instanceof Error) {

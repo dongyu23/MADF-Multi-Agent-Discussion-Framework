@@ -9,13 +9,13 @@ export function useForumWebSocket(forumId: number) {
   const connect = () => {
     if (ws) ws.close()
     
-    // Determine protocol
+    // Use correct WS URL based on environment
+    // In dev, Vite proxies /api to backend. 
+    // WS needs to connect to the same host/port as the page, but with ws protocol.
+    // If backend is on 8000 and frontend on 5173, and we rely on proxy:
+    // ws://localhost:5173/api/v1/forums/1/ws -> Vite Proxy -> ws://127.0.0.1:8000/api/v1/forums/1/ws
+    
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    // In dev, vite proxy might handle /api, but WS often needs direct port or proxy config.
-    // Assuming backend is at same host/port as API request base or relative.
-    // If using proxy, window.location.host is frontend host (localhost:5173).
-    // Vite proxy forwards /api. So ws://localhost:5173/api/v1... should work if configured.
-    // Safest is to use the same logic as before or env var.
     const host = window.location.host
     const wsUrl = `${protocol}//${host}/api/v1/forums/${forumId}/ws`
     
@@ -36,6 +36,8 @@ export function useForumWebSocket(forumId: number) {
              store.addMessage(data.data)
           } else if (data.type === 'message_chunk' && data.data) {
              store.updateStreamingMessage(data.data)
+          } else if (data.type === 'system_log' && data.data) {
+             store.addSystemLog(data.data)
           }
         } catch (e) {
           console.error('WS Parse Error', e)

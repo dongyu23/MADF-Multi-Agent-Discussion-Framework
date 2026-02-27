@@ -7,9 +7,11 @@ from app.schemas import (
     ForumCreate, 
     ForumResponse, 
     MessageCreate, 
-    MessageResponse
+    MessageResponse,
+    SystemLogResponse
 )
 from app.crud import get_forum, get_forum_messages
+from app.crud.crud_system_log import get_system_logs
 from app.api.deps import get_current_user
 from app.core.websockets import manager
 from app.models import User
@@ -80,6 +82,13 @@ def get_messages(forum_id: int, db: Session = Depends(get_db)):
     if not db_forum:
         raise HTTPException(status_code=404, detail="Forum not found")
     return get_forum_messages(db, forum_id=forum_id)
+
+@router.get("/{forum_id}/logs", response_model=List[SystemLogResponse])
+def get_forum_logs(forum_id: int, db: Session = Depends(get_db)):
+    db_forum = get_forum(db, forum_id=forum_id)
+    if not db_forum:
+        raise HTTPException(status_code=404, detail="Forum not found")
+    return get_system_logs(db, forum_id=forum_id)
 
 @router.websocket("/{forum_id}/ws")
 async def websocket_endpoint(websocket: WebSocket, forum_id: int):

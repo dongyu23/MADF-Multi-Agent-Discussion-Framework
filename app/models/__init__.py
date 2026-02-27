@@ -1,10 +1,21 @@
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Text, DateTime
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, configure_mappers, backref
 from datetime import datetime
 from app.core.time_utils import get_beijing_time
 import json
 
 from app.db.session import Base
+
+class GodLog(Base):
+    __tablename__ = "god_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    god_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    action = Column(String, nullable=False)
+    details = Column(Text) # JSON string
+    timestamp = Column(DateTime, default=get_beijing_time)
+
+    god_user = relationship("User", backref=backref("god_logs", cascade="all, delete-orphan"))
 
 class User(Base):
     __tablename__ = "users"
@@ -18,7 +29,6 @@ class User(Base):
     personas = relationship("Persona", back_populates="owner", cascade="all, delete-orphan")
     created_forums = relationship("Forum", back_populates="creator", cascade="all, delete-orphan")
     observations = relationship("Observation", back_populates="user", cascade="all, delete-orphan")
-    god_logs = relationship("GodLog", back_populates="god_user", cascade="all, delete-orphan")
 
 class Persona(Base):
     __tablename__ = "personas"
@@ -38,12 +48,31 @@ class Persona(Base):
     participated_forums = relationship("ForumParticipant", back_populates="persona", cascade="all, delete-orphan")
     messages = relationship("Message", back_populates="persona")
 
+class Moderator(Base):
+    __tablename__ = "moderators"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    title = Column(String, default="主持人")
+    bio = Column(Text)
+    system_prompt = Column(Text)
+    greeting_template = Column(Text) # Opening template
+    closing_template = Column(Text) # Closing template
+    summary_template = Column(Text) # Summary template
+    creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=get_beijing_time)
+
+    creator = relationship("User") 
+    forums = relationship("Forum", back_populates="moderator")
+    messages = relationship("Message", back_populates="moderator")
+
 class Forum(Base):
     __tablename__ = "forums"
 
     id = Column(Integer, primary_key=True, index=True)
     topic = Column(String, nullable=False)
     creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    moderator_id = Column(Integer, ForeignKey("moderators.id"), nullable=True) # Nullable for backward compatibility
     status = Column(String, default="active") # 'active', 'finished'
     summary_history = Column(Text, default="[]")
     start_time = Column(DateTime, default=get_beijing_time)
@@ -51,6 +80,7 @@ class Forum(Base):
     duration_minutes = Column(Integer, default=30)
 
     creator = relationship("User", back_populates="created_forums")
+    moderator = relationship("Moderator", back_populates="forums")
     participants = relationship("ForumParticipant", back_populates="forum", cascade="all, delete-orphan")
     messages = relationship("Message", back_populates="forum", cascade="all, delete-orphan")
     observers = relationship("Observation", back_populates="forum", cascade="all, delete-orphan")
@@ -71,6 +101,7 @@ class Message(Base):
     id = Column(Integer, primary_key=True, index=True)
     forum_id = Column(Integer, ForeignKey("forums.id"), nullable=False)
     persona_id = Column(Integer, ForeignKey("personas.id"), nullable=True) # Null for Moderator
+    moderator_id = Column(Integer, ForeignKey("moderators.id"), nullable=True) # If set, it's a moderator message
     speaker_name = Column(String, nullable=False)
     content = Column(Text, nullable=False)
     turn_count = Column(Integer, default=0)
@@ -79,6 +110,7 @@ class Message(Base):
 
     forum = relationship("Forum", back_populates="messages")
     persona = relationship("Persona", back_populates="messages")
+    moderator = relationship("Moderator", back_populates="messages")
 
 class Observation(Base):
     __tablename__ = "observations"
@@ -92,13 +124,10 @@ class Observation(Base):
     user = relationship("User", back_populates="observations")
     forum = relationship("Forum", back_populates="observers")
 
-class GodLog(Base):
-    __tablename__ = "god_logs"
+from .system_log import SystemLog
 
-    id = Column(Integer, primary_key=True, index=True)
-    god_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    action = Column(String, nullable=False)
-    details = Column(Text) # JSON string
-    timestamp = Column(DateTime, default=get_beijing_time)
+# Update Forum relationship
+Forum.system_logs = relationship("SystemLog", back_populates="forum", cascade="all, delete-orphan")
 
-    god_user = relationship("User", back_populates="god_logs")
+# Ensure mappers are configured
+configure_mappers()
