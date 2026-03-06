@@ -1,110 +1,119 @@
 <template>
   <div class="persona-page">
-    <div class="page-header">
-      <div class="header-title">
-        <span class="title">智能体工坊</span>
-        <span class="subtitle">管理您的智能体角色，定义个性与认知体系</span>
+    <div class="persona-content-wrapper">
+      <div class="page-header">
+        <div class="header-title">
+          <span class="title">智能体工坊</span>
+          <span class="subtitle">管理您的智能体角色，定义个性与认知体系</span>
+        </div>
+        <a-space>
+          <a-button type="primary" ghost size="large" @click="showRealGodModal" class="real-god-btn">
+            <global-outlined /> 上帝生成真实角色 (联网)
+          </a-button>
+          <a-button type="primary" ghost size="large" @click="showGodModal" :loading="godLoading">
+            <thunderbolt-outlined /> 调用上帝生成全新智能体
+          </a-button>
+          <a-button type="primary" size="large" @click="showModal()">
+            <plus-outlined /> 创建智能体
+          </a-button>
+        </a-space>
       </div>
-      <a-space>
-        <a-button type="primary" ghost size="large" @click="showGodModal" :loading="godLoading">
-          <thunderbolt-outlined /> 调用上帝生成全新智能体
-        </a-button>
-        <a-button type="primary" size="large" @click="showModal()">
-          <plus-outlined /> 创建智能体
-        </a-button>
-      </a-space>
-    </div>
 
-    <a-tabs v-model:activeKey="activeTab" class="persona-tabs">
-      <a-tab-pane key="grid" tab="卡片视图">
-        <a-spin :spinning="personaStore.loading">
-          <div class="persona-grid">
-            <a-card
-              v-for="persona in personaStore.personas"
-              :key="persona.id"
-              hoverable
-              class="persona-card"
-            >
-              <template #actions>
-                <eye-outlined key="view" @click="showDetails(persona)" />
-                <edit-outlined key="edit" @click="showModal(persona)" />
-                <a-popconfirm
-                  title="确定要删除这个智能体吗？"
-                  @confirm="handleDelete(persona.id)"
-                >
-                  <delete-outlined key="delete" style="color: #ff4d4f" />
-                </a-popconfirm>
-              </template>
-              <a-card-meta :title="persona.name" :description="persona.title || '暂无头衔'">
-                <template #avatar>
-                  <a-avatar
-                    :style="{ backgroundColor: getAvatarColor(persona.name) }"
-                    size="large"
+      <a-tabs v-model:activeKey="activeTab" class="persona-tabs">
+        <a-tab-pane key="grid" tab="卡片视图">
+          <a-spin :spinning="personaStore.loading">
+            <div class="persona-grid">
+              <a-card
+                v-for="persona in personaStore.personas"
+                :key="persona.id"
+                hoverable
+                class="persona-card"
+              >
+                <template #actions>
+                  <eye-outlined key="view" @click="showDetails(persona)" />
+                  <edit-outlined key="edit" @click="showModal(persona)" />
+                  <a-popconfirm
+                    title="确定要删除这个智能体吗？"
+                    @confirm="handleDelete(persona.id)"
                   >
-                    {{ persona.name[0] }}
-                  </a-avatar>
+                    <delete-outlined key="delete" style="color: #ff4d4f" />
+                  </a-popconfirm>
                 </template>
-              </a-card-meta>
-              <div class="persona-content">
-                <p class="bio" :title="persona.bio">{{ persona.bio || '暂无简介' }}</p>
-                <div class="stance" v-if="persona.stance">
-                  <span class="label">立场:</span> {{ persona.stance }}
+                <a-card-meta :title="persona.name" :description="persona.title || '暂无头衔'">
+                  <template #avatar>
+                    <a-avatar
+                      :style="{ backgroundColor: getAvatarColor(persona.name) }"
+                      size="large"
+                    >
+                      {{ persona.name[0] }}
+                    </a-avatar>
+                  </template>
+                </a-card-meta>
+                <div class="persona-content">
+                  <p class="bio" :title="persona.bio">{{ persona.bio || '暂无简介' }}</p>
+                  <div class="stance" v-if="persona.stance">
+                    <span class="label">立场:</span> {{ persona.stance }}
+                  </div>
+                  <div class="tags">
+                    <a-tag v-if="persona.is_public" color="green">公开</a-tag>
+                    <a-tag v-else color="blue">私有</a-tag>
+                    <a-tag v-for="tag in persona.theories.slice(0, 2)" :key="tag">{{ tag }}</a-tag>
+                    <a-tag v-if="persona.theories.length > 2">...</a-tag>
+                  </div>
                 </div>
-                <div class="tags">
-                  <a-tag v-if="persona.is_public" color="green">公开</a-tag>
-                  <a-tag v-else color="blue">私有</a-tag>
-                  <a-tag v-for="tag in persona.theories.slice(0, 2)" :key="tag">{{ tag }}</a-tag>
-                  <a-tag v-if="persona.theories.length > 2">...</a-tag>
-                </div>
+              </a-card>
+              
+              <!-- Empty State -->
+              <div v-if="personaStore.personas.length === 0" class="empty-state">
+                <a-empty description="暂无智能体，快去创建一个吧" />
               </div>
-            </a-card>
-            
-            <!-- Empty State -->
-            <div v-if="personaStore.personas.length === 0" class="empty-state">
-              <a-empty description="暂无智能体，快去创建一个吧" />
             </div>
-          </div>
-        </a-spin>
-      </a-tab-pane>
-      
-      <a-tab-pane key="list" tab="列表视图">
-        <a-table
-          :columns="columns"
-          :data-source="personaStore.personas"
-          :loading="personaStore.loading"
-          row-key="id"
-        >
-          <template #bodyCell="{ column, record }">
-            <template v-if="column.key === 'bio'">
-              <span :title="record.bio">{{ record.bio }}</span>
+          </a-spin>
+        </a-tab-pane>
+        
+        <a-tab-pane key="list" tab="列表视图">
+          <a-table
+            :columns="columns"
+            :data-source="personaStore.personas"
+            :loading="personaStore.loading"
+            row-key="id"
+          >
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'bio'">
+                <span :title="record.bio">{{ record.bio }}</span>
+              </template>
+              <template v-if="column.key === 'stance'">
+                <span :title="record.stance">{{ record.stance }}</span>
+              </template>
+              <template v-if="column.key === 'theories'">
+                <a-tag v-for="tag in record.theories" :key="tag">{{ tag }}</a-tag>
+              </template>
+              <template v-if="column.key === 'is_public'">
+                <a-tag :color="record.is_public ? 'green' : 'blue'">
+                  {{ record.is_public ? '公开' : '私有' }}
+                </a-tag>
+              </template>
+              <template v-if="column.key === 'action'">
+                <a-space>
+                  <a-button type="link" size="small" @click="showDetails(record)">详情</a-button>
+                  <a-button type="link" size="small" @click="showModal(record)">编辑</a-button>
+                  <a-popconfirm title="确定要删除吗？" @confirm="handleDelete(record.id)">
+                    <a-button type="link" size="small" danger>删除</a-button>
+                  </a-popconfirm>
+                </a-space>
+              </template>
             </template>
-            <template v-if="column.key === 'stance'">
-              <span :title="record.stance">{{ record.stance }}</span>
-            </template>
-            <template v-if="column.key === 'theories'">
-              <a-tag v-for="tag in record.theories" :key="tag">{{ tag }}</a-tag>
-            </template>
-            <template v-if="column.key === 'is_public'">
-              <a-tag :color="record.is_public ? 'green' : 'blue'">
-                {{ record.is_public ? '公开' : '私有' }}
-              </a-tag>
-            </template>
-            <template v-if="column.key === 'action'">
-              <a-space>
-                <a-button type="link" size="small" @click="showDetails(record)">详情</a-button>
-                <a-button type="link" size="small" @click="showModal(record)">编辑</a-button>
-                <a-popconfirm title="确定要删除吗？" @confirm="handleDelete(record.id)">
-                  <a-button type="link" size="small" danger>删除</a-button>
-                </a-popconfirm>
-              </a-space>
-            </template>
-          </template>
-        </a-table>
-      </a-tab-pane>
-    </a-tabs>
+          </a-table>
+        </a-tab-pane>
+      </a-tabs>
+    </div>
 
     <GodAgentModal
       v-model:open="godModalVisible"
+    />
+
+    <RealGodAgentModal
+      v-model:open="realGodModalVisible"
     />
 
     <a-modal
@@ -200,12 +209,14 @@ import { usePersonaStore, type Persona } from '@/stores/persona'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import GodAgentModal from '@/components/god/GodAgentModal.vue'
+import RealGodAgentModal from '@/components/god/RealGodAgentModal.vue'
 import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
   ThunderboltOutlined,
-  EyeOutlined
+  EyeOutlined,
+  GlobalOutlined
 } from '@ant-design/icons-vue'
 
 const personaStore = usePersonaStore()
@@ -213,6 +224,7 @@ const router = useRouter()
 const visible = ref(false)
 const detailsVisible = ref(false)
 const godModalVisible = ref(false)
+const realGodModalVisible = ref(false)
 const submitting = ref(false)
 const editingId = ref<number | null>(null)
 const activeTab = ref('grid')
@@ -316,10 +328,20 @@ const showDetails = (persona: Persona) => {
 const showGodModal = () => {
     godModalVisible.value = true
 }
+
+const showRealGodModal = () => {
+    realGodModalVisible.value = true
+}
 </script>
 
 <style scoped>
 .persona-page {
+  height: 100%;
+  overflow-y: auto;
+  width: 100%;
+}
+
+.persona-content-wrapper {
   max-width: 1200px;
   margin: 0 auto;
   padding: 24px;

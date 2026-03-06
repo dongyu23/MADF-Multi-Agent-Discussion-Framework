@@ -20,13 +20,16 @@
             >
                 <play-circle-outlined /> 开始论坛
             </a-button>
+            <a-button @click="showParticipantModal">
+              <team-outlined /> 查看参与者
+            </a-button>
             <a-popconfirm title="确定删除该论坛吗？" @confirm="handleDelete">
                 <a-button danger>
                     <delete-outlined /> 删除
                 </a-button>
             </a-popconfirm>
-            <a-button @click="showParticipantModal">
-              <team-outlined /> 查看参与者
+            <a-button @click="showSystemLogModal">
+              <code-outlined /> 系统运行日志
             </a-button>
         </a-space>
       </div>
@@ -44,20 +47,29 @@
       :status="forumStore.currentForum.status"
     />
 
-    <!-- Participant & Status Modal -->
+    <!-- Participant Modal -->
     <a-modal
       v-model:open="isParticipantModalVisible"
-      title="参与者与系统状态"
+      title="参与者列表"
+      width="600px"
+      :footer="null"
+    >
+      <div class="modal-content">
+        <div class="modal-section">
+          <ParticipantList />
+        </div>
+      </div>
+    </a-modal>
+
+    <!-- System Log Modal -->
+    <a-modal
+      v-model:open="isSystemLogModalVisible"
+      title="系统运行日志"
       width="800px"
       :footer="null"
     >
       <div class="modal-content">
         <div class="modal-section">
-          <h3>参与者列表</h3>
-          <ParticipantList />
-        </div>
-        <div class="modal-section">
-          <h3>系统运行日志</h3>
           <SystemLogConsole />
         </div>
       </div>
@@ -80,7 +92,8 @@ import {
   ArrowLeftOutlined, 
   TeamOutlined, 
   DeleteOutlined,
-  PlayCircleOutlined
+  PlayCircleOutlined,
+  CodeOutlined
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -91,11 +104,16 @@ const router = useRouter()
 
 const starting = ref(false)
 const isParticipantModalVisible = ref(false)
+const isSystemLogModalVisible = ref(false)
 const forumId = Number(route.params.id)
 const { connect, disconnect } = useForumWebSocket(forumId)
 
 const showParticipantModal = () => {
   isParticipantModalVisible.value = true
+}
+
+const showSystemLogModal = () => {
+  isSystemLogModalVisible.value = true
 }
 
 onMounted(async () => {

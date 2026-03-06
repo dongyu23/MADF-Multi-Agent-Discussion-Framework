@@ -91,7 +91,7 @@ class ModeratorAgent(BaseAgent):
         return get_chat_completion(messages, stream=True)
 
 class ParticipantAgent(BaseAgent):
-    def __init__(self, name, persona, n_participants, theme):
+    def __init__(self, name, persona, n_participants, theme, ablation_flags=None):
         super().__init__(name, persona['system_prompt'])
         self.title = persona['title']
         self.bio = persona['bio']
@@ -101,22 +101,30 @@ class ParticipantAgent(BaseAgent):
         self.private_memory = PrivateMemory(n_participants)
         self.has_spoken = False
         self.theme = theme
+        self.ablation_flags = ablation_flags or {}
 
     def think(self, context):
         """
         Fast Thinking: Analyze context using Bio and Theories.
         """
-        my_memory = self.private_memory.get_recent_thought_str()
+        my_memory = ""
+        if not self.ablation_flags.get("no_private_memory"):
+            my_memory = self.private_memory.get_recent_thought_str()
         
         prompt = f"""
         无需提及但要记住主题：
         {self.theme}
         【当前环境】
         {context}
-
+        """
+        
+        if not self.ablation_flags.get("no_private_memory"):
+            prompt += f"""
         【你的私有记忆】
         {my_memory}
+        """
 
+        prompt += f"""
         【你的生平与理论】
         生平: {self.bio}
         理论武库: {', '.join(self.theories)}
@@ -204,17 +212,27 @@ class ParticipantAgent(BaseAgent):
         else:
             intro_instruction = "你已经发过言了，不需要再自我介绍，更不要说“大家好”"
 
-        my_memory = self.private_memory.get_recent_thought_str()
-        my_speeches = self.private_memory.get_speech_history_str()
+        my_memory = ""
+        my_speeches = ""
+        if not self.ablation_flags.get("no_private_memory"):
+            my_memory = self.private_memory.get_recent_thought_str()
+            my_speeches = self.private_memory.get_speech_history_str()
 
         prompt = f"""
         无需专门提及但要记住主题：
         {self.theme}
         【当前环境】
         {context}
+        """
+        
+        if not self.ablation_flags.get("no_private_memory"):
+            prompt += f"""
         【你的私有记忆】
         {my_memory}
         {my_speeches}
+        """
+        
+        prompt += f"""
         【你的状态】
         {intro_instruction}
         

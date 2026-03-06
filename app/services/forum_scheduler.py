@@ -28,12 +28,12 @@ class ForumScheduler:
     def __init__(self):
         self.running_tasks = {}
 
-    async def start_forum(self, forum_id: int):
+    async def start_forum(self, forum_id: int, ablation_flags: dict = None):
         if forum_id in self.running_tasks:
             logger.warning(f"Forum {forum_id} is already running.")
             return
 
-        task = asyncio.create_task(self._run_forum_loop(forum_id))
+        task = asyncio.create_task(self._run_forum_loop(forum_id, ablation_flags))
         self.running_tasks[forum_id] = task
         
         # Remove task from dict when done
@@ -75,9 +75,10 @@ class ForumScheduler:
             }
         })
 
-    async def _run_forum_loop(self, forum_id: int):
-        logger.info(f"Starting forum loop for {forum_id}")
-        await self._broadcast_system_log(forum_id, "论坛主循环启动...")
+    async def _run_forum_loop(self, forum_id: int, ablation_flags: dict = None):
+        ablation_flags = ablation_flags or {}
+        logger.info(f"Starting forum loop for {forum_id} with flags: {ablation_flags}")
+        await self._broadcast_system_log(forum_id, f"论坛主循环启动... (配置: {ablation_flags})")
         db = SessionLocal()
         try:
             forum = get_forum(db, forum_id)
@@ -112,13 +113,15 @@ class ForumScheduler:
                     name=persona.name,
                     persona=persona_dict,
                     n_participants=n_participants,
-                    theme=forum.topic
+                    theme=forum.topic,
+                    ablation_flags=ablation_flags
                 )
                 
-                # Restore memory
-                if p_db.thoughts_history:
-                    for t in p_db.thoughts_history:
-                        agent.private_memory.add_thought(t)
+                # Restore memory only if private memory is NOT ablated
+                if not ablation_flags.get("no_private_memory"):
+                    if p_db.thoughts_history:
+                        for t in p_db.thoughts_history:
+                            agent.private_memory.add_thought(t)
                 
                 # We need to load speech history too, but that requires querying messages
                 # Optimization: Load messages once
@@ -184,65 +187,40 @@ class ForumScheduler:
                 for m in messages:
                     shared_memory.add_message(m.speaker_name, m.content)
                 
-                # Sync private memories with recent speeches
-                for agent in participants:
-                    agent.private_memory.speech_history = []
-                    my_msgs = [m for m in messages if m.speaker_name == agent.name]
-                    for m in my_msgs:
-                        agent.private_memory.add_speech(m.content)
+                # Sync private memories with recent speeches (if allowed)
+                if not ablation_flags.get("no_private_memory"):
+                    for agent in participants:
+                        agent.private_memory.speech_history = []
+                        my_msgs = [m for m in messages if m.speaker_name == agent.name]
+                        for m in my_msgs:
+                            agent.private_memory.add_speech(m.content)
 
-                # 3. Check Summary
+                # 3. Check Summary (If not ablated)
                 # Requirement #4: Sliding Window Summary
-                # "When N messages exceeded... Moderator summarizes... Append to shared summary... Clear shared memory"
-                # Here "Clear shared memory" implies that subsequent contexts should NOT include the summarized messages.
-                # SharedMemory.get_context_str() builds context from summaries + messages.
-                # So if we clear `messages` (in memory list, not DB), the next context will be Summary + New Messages.
-                # BUT, we re-fetch `messages` from DB every loop: `messages = get_forum_messages(db, forum_id)`.
-                # So we need a way to filter out summarized messages.
-                # We can use `forum.summary_history` length or some metadata to know where to start.
-                # Or simpler: store "last_summarized_msg_id" in Forum? 
-                # Or just rely on the fact that we only feed the last N messages to the periodic_summary prompt,
-                # AND we assume `SharedMemory` should only hold the last N messages + All Summaries.
-                
-                # Let's adjust the logic to strictly follow "Sliding Window":
-                # 1. Fetch ALL messages (or just last N+buffer).
-                # 2. Check if len(unsummarized_messages) > N.
-                # 3. If so, summarize them, add to summary_history, and effectively "archive" them.
-                
-                # To support this statelessly with DB:
-                # We can check `turn_count`. Or just keep the simple heuristic but ensure context is built correctly.
-                # The prompt requirement says: "maintain a global shared memory list... only retain recent N".
-                # In `_run_forum_loop`, we do:
-                # `messages = get_forum_messages(db, forum_id)` -> This gets ALL.
-                # `shared_memory = SharedMemory(n_participants)`
-                # `for m in messages: shared_memory.add_message(...)` -> This adds ALL.
-                # `SharedMemory` internal deque handles the "retain recent N" for *context generation*.
-                
-                # BUT the Summary Trigger should probably be based on *new* messages since last summary.
-                # Let's use a persistent counter or check message count vs stored state?
-                # For now, `msg_count % 10 == 0` is a rough proxy for "every 10 messages".
-                # To be precise:
-                # If we have 20 messages, and we summarized at 10.
-                # At 20, we summarize 11-20.
-                # This works if we assume the loop runs frequently enough.
                 
                 msg_count = len(messages)
                 N_WINDOW = 20 # Configurable default
                 
-                if msg_count > 0 and msg_count % N_WINDOW == 0:
-                    last_msg = messages[-1]
-                    if last_msg.speaker_name != moderator.name:
-                         logger.info(f"Forum {forum_id} triggering summary (msg count {msg_count}).")
-                         # Summarize the last N messages
-                         msgs_to_summarize = messages[-N_WINDOW:]
-                         await self._moderator_speak(db, forum_id, moderator, "periodic_summary", messages=msgs_to_summarize)
-                         # Note: `_moderator_speak` appends to `forum.summary_history`.
-                         # Next loop, `SharedMemory` will load the new summary.
-                         # And `SharedMemory` (via deque) will only keep last N messages in context context_str.
-                         # So "Clear shared memory" effect is achieved by the deque + summary addition.
+                if not ablation_flags.get("no_summary"):
+                    if msg_count > 0 and msg_count % N_WINDOW == 0:
+                        last_msg = messages[-1]
+                        if last_msg.speaker_name != moderator.name:
+                            logger.info(f"Forum {forum_id} triggering summary (msg count {msg_count}).")
+                            # Summarize the last N messages
+                            msgs_to_summarize = messages[-N_WINDOW:]
+                            await self._moderator_speak(db, forum_id, moderator, "periodic_summary", messages=msgs_to_summarize)
 
                 # 4. Select Speaker (Queue Based)
-                context_str = shared_memory.get_context_str()
+                if ablation_flags.get("no_shared_memory"):
+                    # Ablation: Minimal context (only last message)
+                    if messages:
+                        last_m = messages[-1]
+                        context_str = f"【最新发言】\n{last_m.speaker_name}: {last_m.content}"
+                    else:
+                        context_str = "(暂无发言)"
+                else:
+                    context_str = shared_memory.get_context_str()
+
                 speaker = None
                 thoughts_map = {}
                 

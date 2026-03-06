@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List, Annotated
+import json
 
 from app.db.session import get_db
 from app.schemas import PersonaResponse, GodGenerateRequest, PersonaCreate
@@ -8,6 +10,7 @@ from app.crud import create_persona
 from app.models import User
 from app.api.deps import get_current_user
 from app.agent.god import God
+from app.agent.real_god import RealGodAgent
 
 router = APIRouter()
 god = God()
@@ -60,3 +63,74 @@ def generate_personas(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"God agent error: {str(e)}")
+
+@router.post("/generate_real")
+async def generate_real_personas(
+    request: GodGenerateRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Session = Depends(get_db)
+):
+    """
+    Generate personas using RealGodAgent with internet search capabilities.
+    Each persona is generated sequentially to ensure high quality and deep research.
+    Returns a StreamingResponse with SSE events.
+    """
+    agent = RealGodAgent()
+    
+    def event_generator():
+        try:
+            generated_names = []
+            # Split the generation into n separate sequential tasks
+            for i in range(request.n):
+                # Inform the frontend about the current progress
+                current_task_msg = f"正在为第 {i+1}/{request.n} 位智能体进行调研..."
+                yield f"data: {json.dumps({'type': 'thought', 'content': current_task_msg}, ensure_ascii=False)}\n\n"
+                
+                # Each call to agent.run now only generates 1 persona, passing the names already generated
+                for event in agent.run(request.prompt, n=1, generated_names=generated_names):
+                    # If result, save to DB
+                    if event["type"] == "result":
+                        personas_data = event["content"]
+                        saved_personas = []
+                        for p_data in personas_data:
+                            # Add name to the list to avoid duplicates in next iteration
+                            if p_data.get('name'):
+                                generated_names.append(p_data['name'])
+                            
+                            try:
+                                if isinstance(p_data.get('theories'), str):
+                                    try:
+                                        p_data['theories'] = json.loads(p_data['theories'])
+                                    except:
+                                        p_data['theories'] = []
+                                
+                                persona_create = PersonaCreate(**p_data)
+                                persona_create.is_public = False
+                                db_persona = create_persona(db=db, persona=persona_create, owner_id=current_user.id)
+                                # Convert to dict for JSON serialization
+                                saved_personas.append({
+                                    "id": db_persona.id,
+                                    "name": db_persona.name,
+                                    "title": db_persona.title,
+                                    "bio": db_persona.bio,
+                                    "theories": db_persona.theories,
+                                    "stance": db_persona.stance,
+                                    "system_prompt": db_persona.system_prompt,
+                                    "is_public": db_persona.is_public
+                                })
+                            except Exception as e:
+                                print(f"Error saving real persona: {e}")
+                        
+                        # Update content with saved personas (including IDs)
+                        event["content"] = saved_personas
+                    
+                    yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+            
+            # Final message after all generations are done
+            final_msg = f"✅ 所有 {request.n} 位智能体角色已生成并保存完毕。已停止生成。"
+            yield f"data: {json.dumps({'type': 'thought', 'content': final_msg}, ensure_ascii=False)}\n\n"
+                    
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'content': str(e)}, ensure_ascii=False)}\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")

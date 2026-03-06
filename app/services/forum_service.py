@@ -27,7 +27,7 @@ class ForumService:
         
         return create_forum(self.db, forum_in, creator_id)
 
-    async def start_forum(self, forum_id: int, user_id: int, is_admin: bool = False):
+    async def start_forum(self, forum_id: int, user_id: int, is_admin: bool = False, ablation_flags: dict = None):
         forum = get_forum(self.db, forum_id)
         if not forum:
             raise HTTPException(status_code=404, detail="Forum not found")
@@ -38,8 +38,8 @@ class ForumService:
         if forum.status == "running":
             raise HTTPException(status_code=400, detail="Forum already running")
             
-        await scheduler.start_forum(forum_id)
-        return {"status": "started"}
+        await scheduler.start_forum(forum_id, ablation_flags)
+        return {"status": "started", "ablation_flags": ablation_flags}
 
     def delete_forum(self, forum_id: int, user_id: int, is_admin: bool = False):
         forum = get_forum(self.db, forum_id)

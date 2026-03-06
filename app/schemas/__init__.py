@@ -189,3 +189,7 @@ class TriggerModeratorRequest(BaseModel):
 class GodGenerateRequest(BaseModel):
     prompt: str
     n: int = 1
+
+class ForumStartRequest(BaseModel):
+    ablation_flags: Optional[Dict[str, bool]] = None
+

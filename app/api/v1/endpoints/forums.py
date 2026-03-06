@@ -8,7 +8,8 @@ from app.schemas import (
     ForumResponse, 
     MessageCreate, 
     MessageResponse,
-    SystemLogResponse
+    SystemLogResponse,
+    ForumStartRequest
 )
 from app.crud import get_forum, get_forum_messages
 from app.crud.crud_system_log import get_system_logs
@@ -62,11 +63,18 @@ def delete_forum_endpoint(
 @router.post("/{forum_id}/start")
 async def start_forum_endpoint(
     forum_id: int,
-    current_user: Annotated[User, Depends(get_current_user)],
+    request: ForumStartRequest = None,
+    current_user: Annotated[User, Depends(get_current_user)] = None,
     service: ForumService = Depends(get_forum_service)
 ):
+    if current_user is None:
+        # Allow starting without auth for internal scripts?
+        # Or require auth. Let's stick to auth.
+        raise HTTPException(status_code=401, detail="Not authenticated")
+        
     is_admin = current_user.role == 'admin'
-    return await service.start_forum(forum_id, current_user.id, is_admin)
+    ablation_flags = request.ablation_flags if request else None
+    return await service.start_forum(forum_id, current_user.id, is_admin, ablation_flags)
 
 @router.post("/{forum_id}/messages", response_model=MessageResponse)
 async def post_message(
