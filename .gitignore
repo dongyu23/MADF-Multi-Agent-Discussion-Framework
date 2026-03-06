@@ -162,4 +162,6 @@ Thumbs.db
 
 # Documentation Exception
 !docs/architecture_readme.md
-config.py
+
+# Exam results (Generated files)
+exam/results/
