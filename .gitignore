@@ -139,7 +139,7 @@ cython_debug/
 # ----------------------------------
 
 # Configuration files with secrets
-config.py
+/config.py
 
 # Generated reports (optional, can be un-ignored if needed for audit trail in repo)
 dependency_tree_report.txt

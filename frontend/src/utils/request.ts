@@ -2,13 +2,15 @@ import axios from 'axios'
 import { message } from 'ant-design-vue'
 
 const request = axios.create({
+  // Use relative path for Vercel deployment compatibility
+  // In dev (Vite), /api/v1 is proxied to localhost:8000/api/v1
+  // In prod (Vercel), /api/v1 is routed to /api/index.py via vercel.json rewrites
   baseURL: '/api/v1',
-  timeout: 5000
+  timeout: 10000 // Increased timeout for serverless cold starts
 })
 
 request.interceptors.request.use(
   (config) => {
-    // Access localStorage directly to avoid circular dependency with auth store
     const token = localStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
@@ -27,7 +29,6 @@ request.interceptors.response.use(
   (error) => {
     if (error.response) {
       if (error.response.status === 401) {
-        // Clear storage and redirect to login
         localStorage.removeItem('token')
         localStorage.removeItem('user')
         if (!window.location.pathname.includes('/auth/login')) {
@@ -35,6 +36,8 @@ request.interceptors.response.use(
              window.location.href = '/auth/login'
         }
       } else if (error.response.status >= 500) {
+        // Log detailed error for debugging
+        console.error('Server Error:', error.response.data)
         message.error('服务器内部错误，请稍后重试')
       } else {
         const detail = error.response.data?.detail
@@ -42,10 +45,8 @@ request.interceptors.response.use(
         message.error(msg)
       }
     } else if (error.request) {
-        // The request was made but no response was received
         message.error('网络连接失败，请检查网络设置')
     } else {
-        // Something happened in setting up the request that triggered an Error
         message.error('请求配置错误')
     }
     return Promise.reject(error)
