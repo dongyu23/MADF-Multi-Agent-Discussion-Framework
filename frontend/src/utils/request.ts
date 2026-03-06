@@ -37,7 +37,8 @@ request.interceptors.response.use(
         }
       } else if (error.response.status >= 500) {
         // Log detailed error for debugging
-        console.error('Server Error:', error.response.data)
+        // Use JSON.stringify to safely print object content
+        console.error('Server Error:', JSON.stringify(error.response.data, null, 2))
         message.error('服务器内部错误，请稍后重试')
       } else {
         const detail = error.response.data?.detail
