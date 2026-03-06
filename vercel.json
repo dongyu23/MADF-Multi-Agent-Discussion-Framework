@@ -3,7 +3,17 @@
   "builds": [
     {
       "src": "api/index.py",
-      "use": "@vercel/python"
+      "use": "@vercel/python",
+      "config": {
+        "includeFiles": [
+          "app/**",
+          "requirements.txt",
+          "utils.py",
+          "config.py",
+          "alembic/**",
+          "alembic.ini"
+        ]
+      }
     },
     {
       "src": "frontend/package.json",
