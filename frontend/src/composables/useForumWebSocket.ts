@@ -1,5 +1,5 @@
 import { ref, onUnmounted } from 'vue'
-import { useForumStore, type Message } from '@/stores/forum'
+import { useForumStore } from '@/stores/forum'
 
 export function useForumWebSocket(forumId: number) {
   const store = useForumStore()

@@ -58,8 +58,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import { useConfigStore } from '@/stores/config'
 import {
   DashboardOutlined,
   TeamOutlined,
@@ -68,8 +66,6 @@ import {
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
-const authStore = useAuthStore()
-const configStore = useConfigStore()
 const collapsed = ref(false)
 
 const selectedKeys = computed(() => {

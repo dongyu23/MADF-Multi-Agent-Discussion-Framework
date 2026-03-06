@@ -10,7 +10,7 @@
           <a-button type="primary" ghost size="large" @click="showRealGodModal" class="real-god-btn">
             <global-outlined /> 上帝生成真实角色 (联网)
           </a-button>
-          <a-button type="primary" ghost size="large" @click="showGodModal" :loading="godLoading">
+          <a-button type="primary" ghost size="large" @click="showGodModal">
             <thunderbolt-outlined /> 调用上帝生成全新智能体
           </a-button>
           <a-button type="primary" size="large" @click="showModal()">
@@ -206,7 +206,6 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { usePersonaStore, type Persona } from '@/stores/persona'
-import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import GodAgentModal from '@/components/god/GodAgentModal.vue'
 import RealGodAgentModal from '@/components/god/RealGodAgentModal.vue'
@@ -220,7 +219,6 @@ import {
 } from '@ant-design/icons-vue'
 
 const personaStore = usePersonaStore()
-const router = useRouter()
 const visible = ref(false)
 const detailsVisible = ref(false)
 const godModalVisible = ref(false)
@@ -228,7 +226,6 @@ const realGodModalVisible = ref(false)
 const submitting = ref(false)
 const editingId = ref<number | null>(null)
 const activeTab = ref('grid')
-const presetLoading = ref(false)
 const currentPersona = ref<Persona | null>(null)
 
 const columns = [

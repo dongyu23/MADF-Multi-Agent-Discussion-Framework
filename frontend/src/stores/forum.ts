@@ -34,6 +34,8 @@ export interface Forum {
   status: string
   start_time: string
   summary_history: string[]
+  participants?: any[]
+  duration_minutes?: number
 }
 
 export interface SystemLog {

@@ -43,8 +43,8 @@
     <ForumTimer 
       v-if="forumStore.currentForum"
       :start-time="forumStore.currentForum.start_time"
-      :duration-minutes="forumStore.currentForum.duration_minutes || 30" 
-      :status="forumStore.currentForum.status"
+      :duration-minutes="forumStore.currentForum?.duration_minutes || 30" 
+      :status="forumStore.currentForum?.status || 'pending'"
     />
 
     <!-- Participant Modal -->

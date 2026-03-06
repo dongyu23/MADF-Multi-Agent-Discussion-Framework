@@ -72,7 +72,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, watch, onMounted, computed } from 'vue'
+import { ref, nextTick, watch, computed } from 'vue'
 import { useGodStore } from '@/stores/god'
 import { useRouter } from 'vue-router'
 

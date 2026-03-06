@@ -30,7 +30,7 @@ import { computed } from 'vue'
 import { useForumStore } from '@/stores/forum'
 
 const store = useForumStore()
-const participants = computed(() => store.currentForum?.participants || [])
+const participants = computed(() => store.currentForum?.participants ?? [])
 
 const getAvatarColor = (name: string) => {
   const colors = ['#f56a00', '#7265e6', '#ffbf00', '#00a2ae', '#1890ff', '#52c41a', '#eb2f96']
