@@ -13,7 +13,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Create tables
-Base.metadata.create_all(bind=engine)
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    logger.error(f"Database initialization failed: {e}", exc_info=True)
+    # Continue to allow app to start and report error via API
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -26,14 +30,24 @@ async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Global exception: {str(exc)}", exc_info=True)
     return JSONResponse(
         status_code=500,
-        content={"code": 500, "message": str(exc), "data": None},
+        content={
+            "code": 500, 
+            "detail": f"Internal Server Error: {str(exc)}", 
+            "message": f"Internal Server Error: {str(exc)}",
+            "data": None
+        },
     )
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
     return JSONResponse(
         status_code=exc.status_code,
-        content={"code": exc.status_code, "message": exc.detail, "data": None},
+        content={
+            "code": exc.status_code, 
+            "detail": exc.detail, 
+            "message": exc.detail, # Keep message for backward compatibility if needed
+            "data": None
+        },
     )
 
 # Set all CORS enabled origins
