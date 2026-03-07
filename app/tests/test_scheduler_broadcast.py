@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import MagicMock, patch, AsyncMock
 from app.services.forum_scheduler import ForumScheduler
 from app.agent.agent import ParticipantAgent
 
@@ -22,7 +22,7 @@ class TestForumScheduler(unittest.TestCase):
         context = "test context"
         
         # Mock speak to return a generator of chunks
-        async def mock_speak(*args):
+        def mock_speak(*args):
             chunks = []
             for char in "Hello World":
                 chunk = MagicMock()
@@ -39,8 +39,9 @@ class TestForumScheduler(unittest.TestCase):
         mock_p.persona_id = 123
         
         with patch('app.services.forum_scheduler.get_forum_participants', return_value=[mock_p]), \
-             patch('app.services.forum_scheduler.create_message') as mock_create_msg:
-            
+             patch('app.services.forum_scheduler.create_message') as mock_create_msg, \
+             patch('app.services.forum_scheduler.manager.broadcast', new_callable=AsyncMock):
+
             # Run
             import asyncio
             asyncio.run(self.scheduler._agent_speak(mock_db, forum_id, agent, thought, context))
@@ -60,8 +61,8 @@ class TestForumScheduler(unittest.TestCase):
             
             # Check content of first chunk
             self.assertEqual(chunk_calls[0][0][1]['data']['content'], 'H')
-            self.assertEqual(chunk_calls[0][0][1]['speaker_name'], "Test Agent")
-            self.assertEqual(chunk_calls[0][0][1]['persona_id'], 123)
+            self.assertEqual(chunk_calls[0][0][1]['data']['speaker_name'], "Test Agent")
+            self.assertEqual(chunk_calls[0][0][1]['data']['persona_id'], 123)
             
             # Filter for final message
             final_calls = [c for c in calls if c[0][1]['type'] == 'new_message']

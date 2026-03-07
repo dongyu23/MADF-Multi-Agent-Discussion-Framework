@@ -1,133 +1,99 @@
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Text, DateTime
-from sqlalchemy.orm import relationship, configure_mappers, backref
+from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
-from app.core.time_utils import get_beijing_time
+from typing import Optional, List, Any, Union
 import json
 
-from app.db.session import Base
-
-class GodLog(Base):
-    __tablename__ = "god_logs"
-
-    id = Column(Integer, primary_key=True, index=True)
-    god_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    action = Column(String, nullable=False)
-    details = Column(Text) # JSON string
-    timestamp = Column(DateTime, default=get_beijing_time)
-
-    god_user = relationship("User", backref=backref("god_logs", cascade="all, delete-orphan"))
-
-class User(Base):
-    __tablename__ = "users"
-
-    id = Column(Integer, primary_key=True, index=True)
-    username = Column(String, unique=True, index=True, nullable=False)
-    password_hash = Column(String, nullable=False)
-    role = Column(String, default="user", nullable=False) # 'user', 'admin', 'god'
-    created_at = Column(DateTime, default=get_beijing_time)
-
-    personas = relationship("Persona", back_populates="owner", cascade="all, delete-orphan")
-    created_forums = relationship("Forum", back_populates="creator", cascade="all, delete-orphan")
-    observations = relationship("Observation", back_populates="user", cascade="all, delete-orphan")
-
-class Persona(Base):
-    __tablename__ = "personas"
-
-    id = Column(Integer, primary_key=True, index=True)
-    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    name = Column(String, nullable=False)
-    title = Column(String)
-    bio = Column(Text)
-    theories = Column(Text) # JSON string
-    stance = Column(Text)
-    system_prompt = Column(Text)
-    is_public = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=get_beijing_time)
-
-    owner = relationship("User", back_populates="personas")
-    participated_forums = relationship("ForumParticipant", back_populates="persona", cascade="all, delete-orphan")
-    messages = relationship("Message", back_populates="persona")
-
-class Moderator(Base):
-    __tablename__ = "moderators"
-
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    title = Column(String, default="主持人")
-    bio = Column(Text)
-    system_prompt = Column(Text)
-    greeting_template = Column(Text) # Opening template
-    closing_template = Column(Text) # Closing template
-    summary_template = Column(Text) # Summary template
-    creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    created_at = Column(DateTime, default=get_beijing_time)
-
-    creator = relationship("User") 
-    forums = relationship("Forum", back_populates="moderator")
-    messages = relationship("Message", back_populates="moderator")
-
-class Forum(Base):
-    __tablename__ = "forums"
-
-    id = Column(Integer, primary_key=True, index=True)
-    topic = Column(String, nullable=False)
-    creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    moderator_id = Column(Integer, ForeignKey("moderators.id"), nullable=True) # Nullable for backward compatibility
-    status = Column(String, default="active") # 'active', 'finished'
-    summary_history = Column(Text, default="[]")
-    start_time = Column(DateTime, default=get_beijing_time)
-    end_time = Column(DateTime, nullable=True)
-    duration_minutes = Column(Integer, default=30)
-
-    creator = relationship("User", back_populates="created_forums")
-    moderator = relationship("Moderator", back_populates="forums")
-    participants = relationship("ForumParticipant", back_populates="forum", cascade="all, delete-orphan")
-    messages = relationship("Message", back_populates="forum", cascade="all, delete-orphan")
-    observers = relationship("Observation", back_populates="forum", cascade="all, delete-orphan")
-
-class ForumParticipant(Base):
-    __tablename__ = "forum_participants"
-
-    forum_id = Column(Integer, ForeignKey("forums.id"), primary_key=True)
-    persona_id = Column(Integer, ForeignKey("personas.id"), primary_key=True)
-    thoughts_history = Column(Text, default="[]")
-
-    forum = relationship("Forum", back_populates="participants")
-    persona = relationship("Persona", back_populates="participated_forums")
-
-class Message(Base):
-    __tablename__ = "messages"
-
-    id = Column(Integer, primary_key=True, index=True)
-    forum_id = Column(Integer, ForeignKey("forums.id"), nullable=False)
-    persona_id = Column(Integer, ForeignKey("personas.id"), nullable=True) # Null for Moderator
-    moderator_id = Column(Integer, ForeignKey("moderators.id"), nullable=True) # If set, it's a moderator message
-    speaker_name = Column(String, nullable=False)
-    content = Column(Text, nullable=False)
-    turn_count = Column(Integer, default=0)
-    thoughts = Column(Text, nullable=True)
-    timestamp = Column(DateTime, default=get_beijing_time)
-
-    forum = relationship("Forum", back_populates="messages")
-    persona = relationship("Persona", back_populates="messages")
-    moderator = relationship("Moderator", back_populates="messages")
-
-class Observation(Base):
-    __tablename__ = "observations"
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    forum_id = Column(Integer, ForeignKey("forums.id"), nullable=False)
-    joined_at = Column(DateTime, default=get_beijing_time)
-    left_at = Column(DateTime, nullable=True)
-
-    user = relationship("User", back_populates="observations")
-    forum = relationship("Forum", back_populates="observers")
-
+# Define SystemLog first or import it
 from .system_log import SystemLog
 
-# Update Forum relationship
-Forum.system_logs = relationship("SystemLog", back_populates="forum", cascade="all, delete-orphan")
+class User(BaseModel):
+    id: int
+    username: str
+    password_hash: str
+    role: str = "user"
+    created_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
 
-# Ensure mappers are configured
-configure_mappers()
+class Persona(BaseModel):
+    id: int
+    owner_id: int
+    name: str
+    title: Optional[str] = None
+    bio: Optional[str] = None
+    theories: Optional[Union[List[str], str]] = []
+    stance: Optional[str] = None
+    system_prompt: Optional[str] = None
+    is_public: bool = False
+    created_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class Moderator(BaseModel):
+    id: int
+    name: str
+    title: Optional[str] = "主持人"
+    bio: Optional[str] = None
+    system_prompt: Optional[str] = None
+    greeting_template: Optional[str] = None
+    closing_template: Optional[str] = None
+    summary_template: Optional[str] = None
+    creator_id: int
+    created_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class ForumParticipant(BaseModel):
+    forum_id: int
+    persona_id: int
+    thoughts_history: Optional[Union[List[Any], str]] = []
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class Forum(BaseModel):
+    id: int
+    topic: str
+    creator_id: int
+    moderator_id: Optional[int] = None
+    status: str = "active"
+    summary_history: Optional[Union[List[Any], str]] = []
+    start_time: datetime
+    end_time: Optional[datetime] = None
+    duration_minutes: int = 30
+    
+    # Relationships (Optional, populated manually)
+    participants: Optional[List[Any]] = None
+    moderator: Optional[Moderator] = None
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class Message(BaseModel):
+    id: int
+    forum_id: int
+    persona_id: Optional[int] = None
+    moderator_id: Optional[int] = None
+    speaker_name: str
+    content: str
+    turn_count: int = 0
+    thoughts: Optional[str] = None
+    timestamp: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class Observation(BaseModel):
+    id: int
+    user_id: int
+    forum_id: int
+    joined_at: datetime
+    left_at: Optional[datetime] = None
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class GodLog(BaseModel):
+    id: int
+    god_user_id: int
+    action: str
+    details: Optional[str] = None
+    timestamp: datetime
+    
+    model_config = ConfigDict(from_attributes=True)

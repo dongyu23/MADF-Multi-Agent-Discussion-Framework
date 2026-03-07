@@ -2,11 +2,9 @@ import axios from 'axios'
 import { message } from 'ant-design-vue'
 
 const request = axios.create({
-  // Use relative path for Vercel deployment compatibility
-  // In dev (Vite), /api/v1 is proxied to localhost:8000/api/v1
-  // In prod (Vercel), /api/v1 is routed to /api/index.py via vercel.json rewrites
+  // Base URL for the API
   baseURL: '/api/v1',
-  timeout: 10000 // Increased timeout for serverless cold starts
+  timeout: 60000 // Increased timeout to 60s
 })
 
 request.interceptors.request.use(

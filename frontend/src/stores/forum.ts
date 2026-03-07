@@ -182,9 +182,16 @@ export const useForumStore = defineStore('forum', {
     async createForum(topic: string, participantIds: number[], duration: number, moderatorId?: number) {
       this.loading = true
       try {
+        const normalizedParticipantIds = Array.from(
+          new Set(
+            participantIds
+              .map(id => Number(id))
+              .filter(id => Number.isInteger(id) && id > 0)
+          )
+        )
         const res = await request.post('/forums/', {
           topic,
-          participant_ids: participantIds,
+          participant_ids: normalizedParticipantIds,
           moderator_id: moderatorId,
           duration_minutes: duration
         })

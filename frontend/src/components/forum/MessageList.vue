@@ -12,6 +12,7 @@
         :content="msg.content"
         :timestamp="msg.timestamp"
         :is-self="isSelf(msg)"
+        :is-streaming="(msg as any).isStreaming"
         :moderator-id="msg.moderator_id"
       />
     </div>
@@ -39,9 +40,10 @@ const scrollToBottom = () => {
   bottomRef.value?.scrollIntoView({ behavior: 'smooth' })
 }
 
-watch(() => props.messages.length, () => {
+// Watch for both message count AND message content changes (streaming)
+watch(() => props.messages, () => {
   nextTick(scrollToBottom)
-})
+}, { deep: true })
 
 const isSelf = (msg: Message) => {
   if (msg.speaker_name === authStore.user?.username) return true

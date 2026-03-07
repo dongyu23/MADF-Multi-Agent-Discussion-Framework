@@ -1,11 +1,10 @@
 import asyncio
 import logging
 import time
-import random
 import traceback
 import uuid
-from sqlalchemy.orm import Session
-from app.db.session import SessionLocal
+from typing import Any
+from app.db.session import db_manager
 from app.crud import (
     get_forum, 
     get_forum_participants, 
@@ -19,8 +18,9 @@ from app.schemas import MessageCreate
 from app.agent.agent import ModeratorAgent, ParticipantAgent
 from app.agent.memory import SharedMemory
 from app.core.websockets import manager
-from app.models import Forum, Message
+# Removed SQLAlchemy models import as we use schemas/dicts
 from app.core.time_utils import get_beijing_time, get_beijing_time_iso
+from app.core.async_utils import async_generator_wrapper
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +48,7 @@ class ForumScheduler:
                 pass
             logger.info(f"Forum {forum_id} stopped.")
 
-    async def _broadcast_system_log(self, forum_id: int, message: str, level: str = "info", source: str = "System", db: Session = None):
+    async def _broadcast_system_log(self, forum_id: int, message: str, level: str = "info", source: str = "System", db: Any = None):
         """Broadcast system log to frontend for 'terminal-like' view and optionally persist"""
         
         # Persist if DB session provided
@@ -79,7 +79,9 @@ class ForumScheduler:
         ablation_flags = ablation_flags or {}
         logger.info(f"Starting forum loop for {forum_id} with flags: {ablation_flags}")
         await self._broadcast_system_log(forum_id, f"论坛主循环启动... (配置: {ablation_flags})")
-        db = SessionLocal()
+        
+        # Use new DB client
+        db = db_manager.get_connection()
         try:
             forum = get_forum(db, forum_id)
             if not forum:
@@ -119,12 +121,27 @@ class ForumScheduler:
                 
                 # Restore memory only if private memory is NOT ablated
                 if not ablation_flags.get("no_private_memory"):
-                    if p_db.thoughts_history:
-                        for t in p_db.thoughts_history:
+                    if hasattr(p_db, 'thoughts_history') and p_db.thoughts_history:
+                        # thoughts_history is a JSON string from DB (via RowObject)
+                        # Wait, CRUD handles JSON dumping, but fetching?
+                        # RowObject just has the raw value. 
+                        # In crud.__init__.py: get_forum_participants doesn't decode JSON.
+                        # Wait, I missed decoding JSON in get_forum_participants!
+                        # I should fix that in crud. Or handle it here.
+                        # Let's check crud.
+                        import json
+                        history = []
+                        if isinstance(p_db.thoughts_history, str):
+                            try:
+                                history = json.loads(p_db.thoughts_history)
+                            except:
+                                history = []
+                        elif isinstance(p_db.thoughts_history, list):
+                            history = p_db.thoughts_history
+                            
+                        for t in history:
                             agent.private_memory.add_thought(t)
                 
-                # We need to load speech history too, but that requires querying messages
-                # Optimization: Load messages once
                 participants.append(agent)
 
             moderator_db = forum.moderator
@@ -155,11 +172,10 @@ class ForumScheduler:
             end_time = start_time + duration_sec
             
             turn_count = 0
+            fallback_speaker_idx = 0
             
             while True:
                 # Reload forum to check for external stop signals or status changes
-                # db.refresh(forum) -> This fails because get_forum detaches the object
-                # We need to re-fetch it
                 forum = get_forum(db, forum_id)
                 if not forum:
                     logger.error(f"Forum {forum_id} disappeared during loop.")
@@ -182,8 +198,18 @@ class ForumScheduler:
                 messages = get_forum_messages(db, forum_id)
                 shared_memory = SharedMemory(n_participants)
                 if forum.summary_history:
-                    for s in forum.summary_history:
+                    # Parse summary history if string
+                    summaries = forum.summary_history
+                    if isinstance(summaries, str):
+                        import json
+                        try:
+                            summaries = json.loads(summaries)
+                        except:
+                            summaries = []
+                    
+                    for s in summaries:
                         shared_memory.add_summary(s)
+                        
                 for m in messages:
                     shared_memory.add_message(m.speaker_name, m.content)
                 
@@ -196,8 +222,6 @@ class ForumScheduler:
                             agent.private_memory.add_speech(m.content)
 
                 # 3. Check Summary (If not ablated)
-                # Requirement #4: Sliding Window Summary
-                
                 msg_count = len(messages)
                 N_WINDOW = 20 # Configurable default
                 
@@ -225,16 +249,33 @@ class ForumScheduler:
                 thoughts_map = {}
                 
                 # Everyone thinks
-                await self._broadcast_system_log(forum_id, "所有参与者正在思考中...", "info")
+                await self._broadcast_system_log(forum_id, "所有参与者正在思考中 (分步处理)...", "info")
+                logger.info(f"Forum {forum_id}: Agents start thinking...")
+                
                 async def agent_think(ag):
                     try:
-                        thought = await asyncio.to_thread(ag.think, context_str)
+                        # Log individual agent thinking
+                        await self._broadcast_system_log(forum_id, f"嘉宾 [{ag.name}] 正在思考...", "thought")
+                        thought = await asyncio.wait_for(
+                            asyncio.to_thread(ag.think, context_str),
+                            timeout=30 # Increased timeout for slow API
+                        )
                         return ag, thought
+                    except asyncio.TimeoutError:
+                        logger.warning(f"Agent {ag.name} think timeout")
+                        return ag, None
                     except Exception as e:
                         logger.error(f"Agent {ag.name} think failed: {e}")
                         return ag, None
 
-                think_results = await asyncio.gather(*[agent_think(p) for p in participants])
+                think_results = []
+                for p in participants:
+                    res = await agent_think(p)
+                    think_results.append(res)
+                    # Small delay between thinking calls to avoid rate limits (429)
+                    await asyncio.sleep(1.0)
+                    
+                logger.info(f"Forum {forum_id}: Agents finished thinking.")
                 
                 for agent, thought in think_results:
                     if thought:
@@ -243,26 +284,35 @@ class ForumScheduler:
                             # Add to queue if not already there AND hasn't spoken in current batch
                             if agent not in speaker_queue:
                                 if agent in batch_spoken_agents and speaker_queue:
-                                    # If queue is not empty, and agent already spoke in this batch, deny entry.
-                                    logger.info(f"Agent {agent.name} denied queue entry (already spoke in current batch).")
+                                    pass
                                 else:
                                     speaker_queue.append(agent)
                         
                         # Save thought to DB (Private History)
                         p_db = next((p for p in participants_db if p.persona.name == agent.name), None)
                         if p_db:
-                             new_thoughts = (p_db.thoughts_history or []) + [thought]
+                             # Need to parse current history if string
+                             current_hist = []
+                             if hasattr(p_db, 'thoughts_history'):
+                                 if isinstance(p_db.thoughts_history, str):
+                                     import json
+                                     try:
+                                         current_hist = json.loads(p_db.thoughts_history)
+                                     except:
+                                         pass
+                                 elif isinstance(p_db.thoughts_history, list):
+                                     current_hist = p_db.thoughts_history
+                                     
+                             new_thoughts = current_hist + [thought]
                              update_forum_participant(db, forum_id, p_db.persona_id, thoughts_history=new_thoughts)
 
                 # Pop from queue
                 if speaker_queue:
                     speaker = speaker_queue.pop(0)
                     batch_spoken_agents.add(speaker)
-                    # Requirement: Queue should NOT be cleared automatically.
-                    # It persists until empty.
-                        
-                elif participants and random.random() < 0.2: # 20% chance to random speak if quiet
-                    speaker = random.choice(participants)
+                elif participants:
+                    speaker = participants[fallback_speaker_idx % len(participants)]
+                    fallback_speaker_idx += 1
                 
                 # Check if queue is now empty
                 if not speaker_queue:
@@ -291,10 +341,15 @@ class ForumScheduler:
         except Exception as e:
             logger.error(f"Forum loop crashed: {e}")
             logger.error(traceback.format_exc())
+            # Broadcast the error to the system log so user can see it
+            try:
+                await self._broadcast_system_log(forum_id, f"论坛异常终止: {str(e)}", "error")
+            except:
+                pass
         finally:
             db.close()
 
-    async def _moderator_speak(self, db: Session, forum_id: int, moderator: ModeratorAgent, action: str, guests=None, messages=None):
+    async def _moderator_speak(self, db: Any, forum_id: int, moderator: ModeratorAgent, action: str, guests=None, messages=None):
         content = ""
         gen = None
         stream_id = str(uuid.uuid4())
@@ -302,26 +357,46 @@ class ForumScheduler:
         forum = get_forum(db, forum_id)
         moderator_id = forum.moderator_id
         
+        await self._broadcast_system_log(forum_id, f"主持人 [{moderator.name}] 正在构思...", "info")
         try:
             if action == "opening":
                 guest_list = [{"name": g.name, "title": g.title, "stance": g.stance} for g in guests]
                 gen = await asyncio.to_thread(moderator.opening, guest_list)
             elif action == "closing":
                 forum = get_forum(db, forum_id)
-                gen = await asyncio.to_thread(moderator.closing, forum.summary_history or [])
+                # Parse summary history
+                summaries = forum.summary_history or []
+                if isinstance(summaries, str):
+                    import json
+                    try:
+                        summaries = json.loads(summaries)
+                    except:
+                        summaries = []
+                        
+                gen = await asyncio.to_thread(moderator.closing, summaries)
             elif action == "periodic_summary":
                 msgs_text = [{"speaker": m.speaker_name, "content": m.content} for m in messages[-20:]]
                 gen = await asyncio.to_thread(moderator.periodic_summary, msgs_text)
 
             if gen:
-                for chunk in gen:
-                     if hasattr(chunk.choices[0].delta, 'content') and chunk.choices[0].delta.content:
-                        token = chunk.choices[0].delta.content
-                        content += token
-                        await self._broadcast_chunk(forum_id, moderator.name, token, None, moderator_id, stream_id)
+                try:
+                    # Mark that streaming started
+                    await self._broadcast_system_log(forum_id, f"主持人 [{moderator.name}] 开始发言...", "info")
+                    
+                    async for chunk in async_generator_wrapper(gen):
+                        if hasattr(chunk.choices[0].delta, 'content') and chunk.choices[0].delta.content:
+                            token = chunk.choices[0].delta.content
+                            content += token
+                            await self._broadcast_chunk(forum_id, moderator.name, token, None, moderator_id, stream_id)
+                except Exception as e:
+                     logger.error(f"Error consuming generator: {e}")
+            else:
+                logger.warning("Moderator speak returned None generator")
+                
         except Exception as e:
             logger.error(f"Moderator speak failed: {e}")
             logger.error(traceback.format_exc())
+            await self._broadcast_system_log(forum_id, f"主持人发言生成失败: {str(e)}", "error")
             return
 
         if content:
@@ -335,7 +410,14 @@ class ForumScheduler:
             
             if action == "periodic_summary":
                 forum = get_forum(db, forum_id)
-                new_history = (forum.summary_history or []) + [content]
+                current = forum.summary_history or []
+                if isinstance(current, str):
+                    import json
+                    try:
+                        current = json.loads(current)
+                    except:
+                        current = []
+                new_history = current + [content]
                 update_forum(db, forum_id, summary_history=new_history)
 
             await self._broadcast_message(forum_id, moderator.name, content, None, moderator_id, stream_id, msg.id)
@@ -343,23 +425,32 @@ class ForumScheduler:
             # Log full speech
             await self._broadcast_system_log(forum_id, content, "speech", moderator.name, db=db)
 
-    async def _agent_speak(self, db: Session, forum_id: int, agent: ParticipantAgent, thought: dict, context: str):
+    async def _agent_speak(self, db: Any, forum_id: int, agent: ParticipantAgent, thought: dict, context: str):
         content = ""
         stream_id = str(uuid.uuid4())
         participants = get_forum_participants(db, forum_id)
         p_db = next((p for p in participants if p.persona.name == agent.name), None)
         persona_id = p_db.persona_id if p_db else None
 
+        await self._broadcast_system_log(forum_id, f"嘉宾 [{agent.name}] 正在构思中...", "info")
         try:
             gen = await asyncio.to_thread(agent.speak, thought, context)
             if gen:
-                for chunk in gen:
-                    if hasattr(chunk.choices[0].delta, 'content') and chunk.choices[0].delta.content:
-                        token = chunk.choices[0].delta.content
-                        content += token
-                        await self._broadcast_chunk(forum_id, agent.name, token, persona_id, None, stream_id)
+                try:
+                    await self._broadcast_system_log(forum_id, f"嘉宾 [{agent.name}] 开始发言...", "info")
+                    async for chunk in async_generator_wrapper(gen):
+                        if hasattr(chunk.choices[0].delta, 'content') and chunk.choices[0].delta.content:
+                            token = chunk.choices[0].delta.content
+                            content += token
+                            await self._broadcast_chunk(forum_id, agent.name, token, persona_id, None, stream_id)
+                except Exception as e:
+                    logger.error(f"Error consuming agent generator: {e}")
+            else:
+                logger.warning(f"Agent {agent.name} speak returned None")
+                content = "(沉默)"
         except Exception as e:
             logger.error(f"Agent {agent.name} speak failed: {e}")
+            await self._broadcast_system_log(forum_id, f"嘉宾 [{agent.name}] 发言生成失败: {str(e)}", "error")
             return
 
         if content:
@@ -397,6 +488,7 @@ class ForumScheduler:
             "type": "new_message",
             "data": {
                 "id": msg_id,
+                "forum_id": forum_id,
                 "speaker_name": speaker,
                 "content": content,
                 "persona_id": persona_id,

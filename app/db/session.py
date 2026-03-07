@@ -1,20 +1,8 @@
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from app.db.client import get_db, db_manager
 
-from app.core.config import settings
+# Backward compatibility for existing code that might import engine/SessionLocal
+# We are removing SQLAlchemy, so these are just placeholders or removed.
+# But since we are rewriting the entire DB layer, we don't need to keep them if we fix all usages.
+# For now, let's just export get_db which is the main dependency.
 
-# SQLite requires "check_same_thread": False for multithreading (FastAPI)
-engine = create_engine(
-    settings.SQLALCHEMY_DATABASE_URI, connect_args={"check_same_thread": False}
-)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-Base = declarative_base()
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+__all__ = ["get_db", "db_manager"]

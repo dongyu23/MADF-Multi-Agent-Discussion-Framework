@@ -1,6 +1,5 @@
 import unittest
 from unittest.mock import MagicMock, patch, AsyncMock
-import asyncio
 from app.services.forum_scheduler import ForumScheduler
 from app.agent.agent import ParticipantAgent
 
@@ -46,7 +45,7 @@ class TestForumConcurrency(unittest.IsolatedAsyncioTestCase):
         Verify that broadcast_chunk and broadcast_message are called in correct order.
         """
         scheduler = ForumScheduler()
-        with patch('app.services.forum_scheduler.manager') as mock_manager:
+        with patch('app.services.forum_scheduler.manager', new_callable=AsyncMock) as mock_manager:
             await scheduler._broadcast_chunk(1, "Speaker", "Hello", 123)
             await scheduler._broadcast_message(1, "Speaker", "Hello World", 123)
             

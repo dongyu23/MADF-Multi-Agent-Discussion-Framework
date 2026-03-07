@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  madf:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: madf:latest
+    container_name: madf-app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./madf.db:/app/madf.db
+    restart: always
+
+volumes:
+  madf_data:

@@ -1,279 +1,279 @@
-from sqlalchemy.orm import Session, joinedload
-from app.models import User, Persona, Forum, ForumParticipant, Message
 from app.schemas import UserCreate, PersonaCreate, PersonaUpdate, ForumCreate, MessageCreate
 from app.core.hashing import Hasher
+from app.db.client import fetch_one, fetch_all, RowObject, db_transaction
 import json
+import logging
+from typing import List, Optional, Any
+from datetime import datetime
 
-def get_user_by_username(db: Session, username: str):
-    return db.query(User).filter(User.username == username).first()
+logger = logging.getLogger(__name__)
 
-def create_user(db: Session, user: UserCreate):
-    try:
-        pwd_hash = Hasher.get_password_hash(user.password)
-        db_user = User(
-            username=user.username,
-            password_hash=pwd_hash,
-            role=user.role
-        )
-        db.add(db_user)
-        db.commit()
-        db.refresh(db_user)
-        return db_user
-    except Exception:
-        db.rollback()
-        raise
+def get_user_by_username(db, username: str):
+    rs = db.execute("SELECT * FROM users WHERE username = ?", [username])
+    return fetch_one(rs)
 
-def create_persona(db: Session, persona: PersonaCreate, owner_id: int):
-    try:
-        db_persona = Persona(
-            owner_id=owner_id,
-            name=persona.name,
-            title=persona.title,
-            bio=persona.bio,
-            theories=json.dumps(persona.theories),
-            stance=persona.stance,
-            system_prompt=persona.system_prompt,
-            is_public=persona.is_public
-        )
-        db.add(db_persona)
-        db.commit()
-        db.refresh(db_persona)
-        
-        # Detach from session before modifying mapped attribute with incompatible type (list vs str)
-        db.expunge(db_persona)
-        
-        # Convert JSON string back to list for Pydantic response
-        if isinstance(db_persona.theories, str):
-            try:
-                db_persona.theories = json.loads(db_persona.theories)
-            except:
-                db_persona.theories = []
-        return db_persona
-    except Exception:
-        db.rollback()
-        raise
-
-def get_persona(db: Session, persona_id: int):
-    persona = db.query(Persona).filter(Persona.id == persona_id).first()
-    if persona:
-        # Detach before modifying
-        db.expunge(persona)
-        if persona.theories and isinstance(persona.theories, str):
-            try:
-                persona.theories = json.loads(persona.theories) 
-            except:
-                persona.theories = []
-    return persona
-
-def update_persona(db: Session, persona_id: int, updates: PersonaUpdate):
-    try:
-        db_persona = db.query(Persona).filter(Persona.id == persona_id).first()
-        if not db_persona:
-            return None
-        
-        update_data = updates.model_dump(exclude_unset=True)
-        for key, value in update_data.items():
-            if key == "theories":
-                setattr(db_persona, key, json.dumps(value))
-            else:
-                setattr(db_persona, key, value)
-        
-        db.commit()
-        db.refresh(db_persona)
-        
-        db.expunge(db_persona)
-        if isinstance(db_persona.theories, str):
-            try:
-                db_persona.theories = json.loads(db_persona.theories)
-            except:
-                db_persona.theories = []
-        return db_persona
-    except Exception:
-        db.rollback()
-        raise
-
-def delete_persona(db: Session, persona_id: int):
-    try:
-        db_persona = db.query(Persona).filter(Persona.id == persona_id).first()
-        if db_persona:
-            # Cascade delete participants/messages?
-            # Normally DB foreign keys handle this if ON DELETE CASCADE is set.
-            # If not, we should do it manually or ensure model definition has cascades.
-            # Let's check model definition. Assuming models are set up correctly.
-            # If not, SQLAlchemy relationship cascade options should be set.
-            # For now, just delete the persona.
-            db.delete(db_persona)
-            db.commit()
-            return True
-        return False
-    except Exception:
-        db.rollback()
-        raise
-
-def create_forum(db: Session, forum: ForumCreate, creator_id: int):
-    try:
-        db_forum = Forum(
-            topic=forum.topic,
-            creator_id=creator_id,
-            moderator_id=forum.moderator_id,
-            status="pending",
-            duration_minutes=forum.duration_minutes
-        )
-        db.add(db_forum)
-        db.flush() # Get ID before adding participants
-        
-        # Add participants
-        for pid in forum.participant_ids:
-            participant = ForumParticipant(forum_id=db_forum.id, persona_id=pid)
-            db.add(participant)
-        
-        db.commit()
-        db.refresh(db_forum)
-        return db_forum
-    except Exception:
-        db.rollback()
-        raise
-
-def delete_forum(db: Session, forum_id: int):
-    try:
-        db_forum = db.query(Forum).filter(Forum.id == forum_id).first()
-        if db_forum:
-            # Cascade delete messages and participants
-            # Again, relying on DB/ORM cascade is best practice.
-            db.delete(db_forum)
-            db.commit()
-            return True
-        return False
-    except Exception:
-        db.rollback()
-        raise
-
-def get_forum(db: Session, forum_id: int):
-    forum = db.query(Forum).options(
-        joinedload(Forum.participants).joinedload(ForumParticipant.persona),
-        joinedload(Forum.moderator)
-    ).filter(Forum.id == forum_id).first()
+def create_user(db: Any, user: UserCreate):
+    # Bcrypt (used by passlib) has a 72-byte limit for passwords.
+    # We truncate it here to avoid ValueError.
+    # We use 71 bytes to be safe.
+    password_bytes = user.password.encode('utf-8')
+    if len(password_bytes) > 71:
+        password_bytes = password_bytes[:71]
+    safe_password = password_bytes.decode('utf-8', 'ignore')
     
-    if forum:
-        db.expunge(forum)
-        if forum.summary_history and isinstance(forum.summary_history, str):
-            try:
-                forum.summary_history = json.loads(forum.summary_history)
-            except:
-                forum.summary_history = []
-        elif forum.summary_history is None:
-            forum.summary_history = []
-            
-        # Manually process participants to handle JSON fields if needed?
-        # The Pydantic models (PersonaResponse, ForumParticipantResponse) have validators 
-        # that can handle JSON string parsing.
-        # But if we expunge forum, we might need to expunge participants too to be safe/consistent?
-        # Actually, if we just expunge forum, accessing forum.participants returns the already loaded list.
-        # Accessing properties of participants is fine.
+    try:
+        pwd_hash = Hasher.get_password_hash(safe_password)
+        created_at = datetime.now()
+        rs = db.execute(
+            "INSERT INTO users (username, password_hash, role, created_at) VALUES (?, ?, ?, ?) RETURNING *",
+            [user.username, pwd_hash, user.role, created_at]
+        )
+        return fetch_one(rs)
+    except Exception as e:
+        logger.error(f"Error creating user: {e}")
+        raise
+
+def create_persona(db, persona: PersonaCreate, owner_id: int):
+    try:
+        theories_json = json.dumps(persona.theories)
+        created_at = datetime.now()
+        rs = db.execute(
+            """
+            INSERT INTO personas (owner_id, name, title, bio, theories, stance, system_prompt, is_public, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            RETURNING *
+            """,
+            [
+                owner_id,
+                persona.name,
+                persona.title,
+                persona.bio,
+                theories_json,
+                persona.stance,
+                persona.system_prompt,
+                persona.is_public,
+                created_at
+            ]
+        )
+        return fetch_one(rs)
+    except Exception as e:
+        logger.error(f"Error creating persona: {e}")
+        raise
+
+def get_persona(db, persona_id: int):
+    rs = db.execute("SELECT * FROM personas WHERE id = ?", [persona_id])
+    return fetch_one(rs)
+
+def update_persona(db, persona_id: int, updates: PersonaUpdate):
+    try:
+        # Build dynamic update query
+        update_data = updates.model_dump(exclude_unset=True)
+        if not update_data:
+            return get_persona(db, persona_id)
+
+        set_clauses = []
+        values = []
+        for key, value in update_data.items():
+            set_clauses.append(f"{key} = ?")
+            if key == "theories":
+                values.append(json.dumps(value))
+            else:
+                values.append(value)
+        
+        values.append(persona_id)
+        query = f"UPDATE personas SET {', '.join(set_clauses)} WHERE id = ? RETURNING *"
+        
+        rs = db.execute(query, values)
+        return fetch_one(rs)
+    except Exception as e:
+        logger.error(f"Error updating persona: {e}")
+        raise
+
+def delete_persona(db, persona_id: int):
+    try:
+        rs = db.execute("DELETE FROM personas WHERE id = ?", [persona_id])
+        return rs.rows_affected > 0
+    except Exception as e:
+        logger.error(f"Error deleting persona: {e}")
+        raise
+
+def create_forum(db, forum: ForumCreate, creator_id: int):
+    try:
+        with db_transaction(db) as tx:
+            start_time = datetime.now()
+            rs = tx.execute(
+                """
+                INSERT INTO forums (topic, creator_id, moderator_id, status, duration_minutes, start_time, summary_history)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                RETURNING *
+                """,
+                [
+                    forum.topic,
+                    creator_id,
+                    forum.moderator_id,
+                    "pending",
+                    forum.duration_minutes,
+                    start_time,
+                    "[]"
+                ]
+            )
+            db_forum = fetch_one(rs)
+
+            tx.execute("DELETE FROM messages WHERE forum_id = ?", [db_forum.id])
+            tx.execute("DELETE FROM forum_participants WHERE forum_id = ?", [db_forum.id])
+            tx.execute("DELETE FROM system_logs WHERE forum_id = ?", [db_forum.id])
+
+            if forum.participant_ids:
+                unique_pids = list(dict.fromkeys(int(pid) for pid in forum.participant_ids))
+                values = []
+                placeholders = []
+                for pid in unique_pids:
+                    placeholders.append("(?, ?, ?)")
+                    values.extend([db_forum.id, pid, "[]"])
+
+                if values:
+                    query = f"INSERT OR IGNORE INTO forum_participants (forum_id, persona_id, thoughts_history) VALUES {', '.join(placeholders)}"
+                    tx.execute(query, values)
+
+        return get_forum(db, db_forum.id)
+    except Exception as e:
+        logger.error(f"Error creating forum: {e}")
+        raise
+
+def delete_forum(db, forum_id: int):
+    try:
+        with db_transaction(db) as tx:
+            tx.execute("DELETE FROM messages WHERE forum_id = ?", [forum_id])
+            tx.execute("DELETE FROM forum_participants WHERE forum_id = ?", [forum_id])
+            tx.execute("DELETE FROM system_logs WHERE forum_id = ?", [forum_id])
+            rs = tx.execute("DELETE FROM forums WHERE id = ?", [forum_id])
+            return rs.rows_affected > 0
+    except Exception as e:
+        logger.error(f"Error deleting forum: {e}")
+        raise
+
+def get_forum(db, forum_id: int):
+    # Fetch forum
+    rs = db.execute("SELECT * FROM forums WHERE id = ?", [forum_id])
+    forum = fetch_one(rs)
+    if not forum:
+        return None
+        
+    # Fetch participants with persona details
+    # We can join here or do separate query. Join is better.
+    # But for simplicity and matching old structure, separate queries are fine too.
+    # Let's do a separate call to populate participants if needed, but get_forum usually needs them.
+    # The Pydantic model `ForumResponse` expects `participants`.
+    
+    participants = get_forum_participants(db, forum_id)
+    
+    # We need to attach participants to the forum object for Pydantic to serialize it
+    # RowObject is a wrapper, so we can set attributes.
+    # But RowObject uses __dict__.
+    setattr(forum, "participants", participants)
+    
+    # Fetch moderator if exists
+    if forum.moderator_id:
+        mod_rs = db.execute("SELECT * FROM moderators WHERE id = ?", [forum.moderator_id])
+        setattr(forum, "moderator", fetch_one(mod_rs))
+    else:
+        setattr(forum, "moderator", None)
         
     return forum
 
-def update_forum(db: Session, forum_id: int, summary_history: list = None, status: str = None):
+def update_forum(db, forum_id: int, summary_history: list = None, status: str = None):
     try:
-        db_forum = db.query(Forum).filter(Forum.id == forum_id).first()
-        if not db_forum:
-            return None
+        set_clauses = []
+        values = []
         
         if summary_history is not None:
-            db_forum.summary_history = json.dumps(summary_history)
-        
-        if status is not None:
-            db_forum.status = status
+            set_clauses.append("summary_history = ?")
+            values.append(json.dumps(summary_history))
             
-        db.commit()
-        db.refresh(db_forum)
-        
-        db.expunge(db_forum)
-        if db_forum.summary_history and isinstance(db_forum.summary_history, str):
-            try:
-                db_forum.summary_history = json.loads(db_forum.summary_history)
-            except:
-                db_forum.summary_history = []
-        return db_forum
-    except Exception:
-        db.rollback()
+        if status is not None:
+            set_clauses.append("status = ?")
+            values.append(status)
+            
+        if not set_clauses:
+            return get_forum(db, forum_id)
+            
+        values.append(forum_id)
+        query = f"UPDATE forums SET {', '.join(set_clauses)} WHERE id = ? RETURNING *"
+        rs = db.execute(query, values)
+        return fetch_one(rs)
+    except Exception as e:
+        logger.error(f"Error updating forum: {e}")
         raise
 
-def get_forum_participants(db: Session, forum_id: int):
-    participants = db.query(ForumParticipant).options(joinedload(ForumParticipant.persona)).filter(ForumParticipant.forum_id == forum_id).all()
+def get_forum_participants(db, forum_id: int):
+    # Join with personas to get details
+    query = """
+    SELECT fp.*, p.name as persona_name, p.title as persona_title, p.bio as persona_bio, 
+           p.theories as persona_theories, p.stance as persona_stance, 
+           p.system_prompt as persona_system_prompt, p.owner_id as persona_owner_id,
+           p.created_at as persona_created_at
+    FROM forum_participants fp
+    JOIN personas p ON fp.persona_id = p.id
+    WHERE fp.forum_id = ?
+    """
+    rs = db.execute(query, [forum_id])
+    rows = fetch_all(rs)
     
     results = []
-    for p in participants:
-        db.expunge(p)
-        if p.thoughts_history and isinstance(p.thoughts_history, str):
-            try:
-                p.thoughts_history = json.loads(p.thoughts_history)
-            except:
-                p.thoughts_history = []
-        elif p.thoughts_history is None:
-            p.thoughts_history = []
-            
-        if p.persona:
-            try:
-                db.expunge(p.persona)
-            except:
-                pass
-            
-            if p.persona.theories and isinstance(p.persona.theories, str):
-                try:
-                    p.persona.theories = json.loads(p.persona.theories)
-                except:
-                    p.persona.theories = []
-        
-        results.append(p)
-        
+    for row in rows:
+        # Construct nested persona object
+        persona_data = {
+            "id": row.persona_id,
+            "name": row.persona_name,
+            "title": row.persona_title,
+            "bio": row.persona_bio,
+            "theories": row.persona_theories,
+            "stance": row.persona_stance,
+            "system_prompt": row.persona_system_prompt,
+            "owner_id": row.persona_owner_id,
+            "created_at": row.persona_created_at
+        }
+        # row is a RowObject, so we can set 'persona' attribute
+        setattr(row, "persona", RowObject(persona_data))
+        results.append(row)
     return results
 
-def update_forum_participant(db: Session, forum_id: int, persona_id: int, thoughts_history: list = None):
+def update_forum_participant(db, forum_id: int, persona_id: int, thoughts_history: list = None):
     try:
-        participant = db.query(ForumParticipant).filter(
-            ForumParticipant.forum_id == forum_id,
-            ForumParticipant.persona_id == persona_id
-        ).first()
-        
-        if not participant:
+        if thoughts_history is None:
             return None
             
-        if thoughts_history is not None:
-            participant.thoughts_history = json.dumps(thoughts_history)
-            
-        db.commit()
-        db.refresh(participant)
-        
-        db.expunge(participant)
-        if participant.thoughts_history and isinstance(participant.thoughts_history, str):
-            try:
-                participant.thoughts_history = json.loads(participant.thoughts_history)
-            except:
-                participant.thoughts_history = []
-                
-        return participant
-    except Exception:
-        db.rollback()
+        query = "UPDATE forum_participants SET thoughts_history = ? WHERE forum_id = ? AND persona_id = ? RETURNING *"
+        rs = db.execute(query, [json.dumps(thoughts_history), forum_id, persona_id])
+        return fetch_one(rs)
+    except Exception as e:
+        logger.error(f"Error updating participant: {e}")
         raise
 
-def create_message(db: Session, message: MessageCreate):
+def create_message(db, message: MessageCreate):
     try:
-        db_message = Message(
-            forum_id=message.forum_id,
-            persona_id=message.persona_id,
-            moderator_id=message.moderator_id,
-            speaker_name=message.speaker_name,
-            content=message.content,
-            turn_count=message.turn_count
+        timestamp = datetime.now()
+        rs = db.execute(
+            """
+            INSERT INTO messages (forum_id, persona_id, moderator_id, speaker_name, content, turn_count, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            RETURNING *
+            """,
+            [
+                message.forum_id,
+                message.persona_id,
+                message.moderator_id,
+                message.speaker_name,
+                message.content,
+                message.turn_count,
+                timestamp
+            ]
         )
-        db.add(db_message)
-        db.commit()
-        db.refresh(db_message)
-        return db_message
-    except Exception:
-        db.rollback()
+        return fetch_one(rs)
+    except Exception as e:
+        logger.error(f"Error creating message: {e}")
         raise
 
-def get_forum_messages(db: Session, forum_id: int):
-    return db.query(Message).filter(Message.forum_id == forum_id).all()
+def get_forum_messages(db, forum_id: int):
+    rs = db.execute("SELECT * FROM messages WHERE forum_id = ? ORDER BY timestamp ASC", [forum_id])
+    return fetch_all(rs)

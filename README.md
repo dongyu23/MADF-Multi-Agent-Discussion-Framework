@@ -92,6 +92,24 @@ npm run dev
 ```
 前端访问地址: `http://localhost:5173`
 
+#### 6. 方式三：Docker 部署 (推荐生产环境)
+
+如果你希望在容器化环境中运行 MADF，可以使用提供的 Dockerfile。它会自动构建前端并由后端统一提供服务：
+
+```bash
+# 构建镜像
+docker build -t madf:latest .
+
+# 运行容器
+# 请确保通过环境变量传入 API 密钥
+docker run -d -p 8000:8000 \
+  -e API_KEY="你的_LLM_API_KEY" \
+  -e MODEL_NAME="glm-4.6" \
+  -e SERPAPI_API_KEY="你的_SERPAPI_KEY" \
+  madf:latest
+```
+访问地址: `http://localhost:8000`
+
 ---
 
 ### 🖥️ 体验流程

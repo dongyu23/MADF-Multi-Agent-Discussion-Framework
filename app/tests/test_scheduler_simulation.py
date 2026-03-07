@@ -24,7 +24,7 @@ class TestSchedulerSimulation(unittest.IsolatedAsyncioTestCase):
         mock_forum.summary_history = []
         
         # Mock dependencies
-        with patch('app.services.forum_scheduler.SessionLocal', return_value=mock_db), \
+        with patch('app.services.forum_scheduler.db_manager.get_connection', return_value=mock_db), \
              patch('app.services.forum_scheduler.get_forum', return_value=mock_forum), \
              patch('app.services.forum_scheduler.get_forum_participants', return_value=[]), \
              patch('app.services.forum_scheduler.get_forum_messages', return_value=[]), \

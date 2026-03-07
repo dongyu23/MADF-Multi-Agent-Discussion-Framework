@@ -1,20 +1,25 @@
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
+import os
 from app.core.config import settings
 from app.api.v1.api import api_router
-from app.db.session import engine
-from app.models import Base
+from app.db.session import db_manager
 from app.core.responses.base import Response
+from fastapi.exceptions import RequestValidationError
 import logging
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
-# Create tables
+# Initialize Database Schema
 try:
-    Base.metadata.create_all(bind=engine)
+    db_manager.init_db()
 except Exception as e:
     logger.error(f"Database initialization failed: {e}", exc_info=True)
     # Continue to allow app to start and report error via API
@@ -33,7 +38,7 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={
             "code": 500, 
             "detail": f"Internal Server Error: {str(exc)}", 
-            "message": f"Internal Server Error: {str(exc)}",
+            "message": "服务器内部错误，请稍后重试",
             "data": None
         },
     )
@@ -45,7 +50,20 @@ async def http_exception_handler(request: Request, exc: HTTPException):
         content={
             "code": exc.status_code, 
             "detail": exc.detail, 
-            "message": exc.detail, # Keep message for backward compatibility if needed
+            "message": exc.detail,
+            "data": None
+        },
+    )
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    logger.warning(f"Validation error: {exc.errors()}")
+    return JSONResponse(
+        status_code=400,
+        content={
+            "code": 400,
+            "detail": exc.errors(),
+            "message": "请求参数验证失败",
             "data": None
         },
     )
@@ -61,8 +79,32 @@ app.add_middleware(
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
+# Serve Frontend Static Files
+# In Docker/Production, we build the frontend and put it in frontend/dist
+frontend_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend", "dist")
+
+if os.path.exists(frontend_path):
+    # Mount assets and other static files
+    app.mount("/assets", StaticFiles(directory=os.path.join(frontend_path, "assets")), name="assets")
+    
+    # Catch-all for SPA routing: serve index.html for all non-API routes
+    @app.get("/{path_name:path}")
+    async def serve_frontend(path_name: str):
+        # Skip API routes and common asset patterns
+        if path_name.startswith("api") or "." in path_name:
+             # If it's a file but not found, let it 404
+             file_path = os.path.join(frontend_path, path_name)
+             if os.path.exists(file_path):
+                 return FileResponse(file_path)
+             return JSONResponse(status_code=404, content={"detail": "Not Found"})
+        
+        return FileResponse(os.path.join(frontend_path, "index.html"))
+
 @app.get("/")
 def root():
+    # If frontend exists, serve it, otherwise serve API welcome
+    if os.path.exists(frontend_path):
+        return FileResponse(os.path.join(frontend_path, "index.html"))
     return {"message": "Welcome to MADF API", "docs": "/docs"}
 
 if __name__ == "__main__":

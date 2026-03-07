@@ -92,11 +92,12 @@ class ModeratorAgent(BaseAgent):
 
 class ParticipantAgent(BaseAgent):
     def __init__(self, name, persona, n_participants, theme, ablation_flags=None):
-        super().__init__(name, persona['system_prompt'])
-        self.title = persona['title']
-        self.bio = persona['bio']
-        self.theories = persona['theories']
-        self.stance = persona['stance']
+        system_prompt = persona.get('system_prompt', "你是一个参与圆桌讨论的嘉宾。")
+        super().__init__(name, system_prompt)
+        self.title = persona.get('title', "专家")
+        self.bio = persona.get('bio', "无")
+        self.theories = persona.get('theories', [])
+        self.stance = persona.get('stance', "中立")
         self.priority = 100
         self.private_memory = PrivateMemory(n_participants)
         self.has_spoken = False
@@ -166,38 +167,43 @@ class ParticipantAgent(BaseAgent):
             "benefit": ""
         }
         try:
-            lines = content.strip().split('\n')
+            normalized = content.replace("：", ":")
+            lines = normalized.strip().split('\n')
             current_key = None
             
             for line in lines:
                 line = line.strip()
                 if not line: continue
-                
-                if line.startswith("DECISION:"):
-                    action_str = line.split(":", 1)[1].strip()
-                    if "APPLY_SPEAK" in action_str:
+
+                upper_line = line.upper()
+                if upper_line.startswith("DECISION:") or upper_line.startswith("行动:") or upper_line.startswith("决策:"):
+                    action_str = line.split(":", 1)[1].strip().upper()
+                    if "APPLY_SPEAK" in action_str or "SPEAK" in action_str or "申请发言" in line or "发言" in line:
                         result["action"] = "apply_to_speak"
                     else:
                         result["action"] = "listen"
-                elif line.startswith("INNER_MONOLOGUE:"):
+                elif upper_line.startswith("INNER_MONOLOGUE:") or line.startswith("内心独白:"):
                     current_key = "mind"
                     result["mind"] = line.split(":", 1)[1].strip()
-                elif line.startswith("THEORY_USED:"):
+                elif upper_line.startswith("THEORY_USED:") or line.startswith("引用理论:"):
                     current_key = "theory_used"
                     result["theory_used"] = line.split(":", 1)[1].strip()
-                elif line.startswith("PREVIOUS_VIEW:"):
+                elif upper_line.startswith("PREVIOUS_VIEW:") or line.startswith("前序观点:"):
                     current_key = "previous"
                     result["previous"] = line.split(":", 1)[1].strip()
-                elif line.startswith("BENEFIT:"):
+                elif upper_line.startswith("BENEFIT:") or line.startswith("预期贡献:"):
                     current_key = "benefit"
                     result["benefit"] = line.split(":", 1)[1].strip()
                 elif current_key:
-                    # Append continuation lines
                     result[current_key] += " " + line
-            
+
+            if result["action"] == "listen":
+                raw_upper = normalized.upper()
+                if "APPLY_SPEAK" in raw_upper or "申请发言" in normalized:
+                    result["action"] = "apply_to_speak"
+
             return result
-        except Exception as e:
-            # Fallback
+        except Exception:
             return result
 
     def speak(self, thought, context):

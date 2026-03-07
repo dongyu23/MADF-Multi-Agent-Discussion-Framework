@@ -17,7 +17,7 @@ describe('LoginView', () => {
         }
       }
     })
-    expect(wrapper.text()).toContain('Login')
+    expect(wrapper.text()).toContain('登录')
     expect(wrapper.find('input[type="text"]').exists()).toBe(true)
     expect(wrapper.find('input[type="password"]').exists()).toBe(true)
   })

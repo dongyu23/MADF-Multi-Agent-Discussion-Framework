@@ -1,77 +1,109 @@
 import json
 import re
 import requests
-from typing import List, Dict, Any, Generator
+from typing import List, Dict, Any, Generator, Tuple, Optional
 from utils import get_chat_completion, parse_json_from_response
 from config import SERPAPI_API_KEY
 
-REACT_PROMPT_TEMPLATE = """
-你是一个拥有互联网搜索能力的上帝智能体。你的任务是根据用户的描述，生成**一位**极具深度、有血有肉的真实（或基于真实背景的）智能体角色。
+# ==========================================
+# Prompts
+# ==========================================
 
-【用户描述】：
-{question}
+COUNT_EXTRACT_PROMPT = """
+你是一个辅助助手。请从用户的描述中提取需要生成的角色数量。
+用户描述：{user_prompt}
 
-【核心目标】：
-我们要创造的是真实的人，或者基于真实历史/现实人物背景的角色。每个人物都必须有复杂的背景和深刻的学术积淀。
+请仅输出一个数字（整数）。
+如果用户没有明确指定数量，默认为 1。
+如果用户暗示了多个（例如“几个”、“一对”），请根据语境推断最合理的数量（不超过 5）。
 
-【可用工具】：
-- Search: 一个网页搜索引擎。当你需要查找真实人物、历史事实、时事或专业知识时，必须使用此工具。
-
-【流程】：
-1. 分析用户描述，确定需要搜索的关键信息（如特定人物生平、特定领域的专家、历史背景等）。
-2. 使用 Search 工具获取信息。**务必针对该角色的生平细节、核心观点、性格特征进行深入搜索**。
-3. 根据搜索结果，构思角色详情。
-4. 最终生成角色（JSON格式）。
-
-【回复格式要求】：
-请严格按照以下格式进行回应（包括思维过程和行动）：
-
-Thought: 你的思考过程，分析当前需要做什么。
-Action: Search[搜索关键词]  <-- 如果需要搜索
-Observation: [工具返回的结果] <-- 这部分由系统填写
-... (重复思考和行动直到收集足够信息) ...
-Thought: 我已经收集了足够的信息，现在开始生成角色。
-Action: Finish[JSON数据]
-
-【JSON格式特别说明】：
-1. JSON字符串值内部如果包含引号，请务必使用单引号（'）代替双引号（"），或者使用转义（\"）。
-   - 错误示例：{{"bio": "他被称为"现代物理学之父"..."}}
-   - 正确示例：{{"bio": "他被称为'现代物理学之父'..."}}
-2. 确保 JSON 格式合法，不要有多余的逗号。
-
-【最终 JSON 数据要求】：
-必须是一个列表，仅包含 **1位** 角色。
-每个对象包含：
-- name: 姓名
-- title: 头衔/职业
-- bio: **400字以上的深度生平**，基于搜索到的真实背景，包含教育经历、职业转折、重大成就及个人挫折。
-- theories: 7个具体理论/概念。
-- stance: **400字以上的深度性格与立场描述**，详细阐述其世界观、价值观及对待争议话题的态度。
-- system_prompt: 第一人称的指导提示词。
-
-示例 JSON:
-[
-    {{
-        "name": "埃隆·马斯克",
-        "title": "科技企业家",
-        "bio": "（400字以上）...",
-        "theories": ["第一性原理", "火星殖民", ...],
-        "stance": "（400字以上）...",
-        "system_prompt": "..."
-    }}
-]
-
-开始！
+只输出数字，不要包含任何其他文字。
 """
 
+REACT_SYS_PROMPT = """
+你是一个拥有互联网搜索能力的上帝智能体（RealGodAgent）。
+你的任务是根据用户需求，通过联网搜索获取真实信息，并基于这些信息生成详细的角色设定（Persona）。
+
+【当前任务】
+用户需求：{user_prompt}
+进度：正在生成第 {current_index} 位角色（计划生成 {total_count} 位）。
+已生成角色列表（本轮）：{generated_names}
+
+【本轮生成上下文 (避免重复/保持连贯)】
+{session_context}
+
+【严禁重复 (Anti-Duplication)】
+- **绝对禁止**再次生成已生成的角色（{generated_names}）。
+- **绝对禁止**生成数据库中已存在的角色（{db_existing_names}）。
+- **绝对禁止**对已生成的角色进行“补充”、“深化”或“更详细版本”的生成。
+- 你必须生成一个**全新的**、与上述角色**不同的**人物。
+- 如果用户需求比较模糊（如“生成两个物理学家”），请确保每位角色都是独立的个体。
+
+【思维与行动准则 (ReAct)】
+你必须严格遵循 "Thought" -> "Action" -> "Observation" 的循环模式。
+
+1. **Thought (思考)**：
+   - 分析当前需要什么信息。
+   - 第一次搜索应广泛（如“姓名 简介”），确定人物原型。
+   - 第二次搜索应深入（如“姓名 争议”或“姓名 学术观点”），补充细节。
+   - 注意：你最多只能进行 **2次** 搜索。
+   - **去重检查**：如果上下文中已存在某个角色的详细信息，请务必选择一个完全不同的人物进行生成。
+
+2. **Action (行动)**：
+   - 使用 `Search[关键词]` 进行搜索。
+   - 使用 `Finish[JSON数据]` 提交最终结果。
+
+3. **Observation (观察)**：
+   - 搜索工具会返回结果，请基于结果进行下一步思考。
+
+【输出格式】
+Thought: <你的思考内容>
+Action: Search[关键词]  (或 Finish[JSON])
+
+【JSON 数据格式要求】
+提交的 JSON 必须包含以下字段（确保是合法的 JSON，不要使用 Markdown 代码块，不要包含注释）：
+- name: 姓名
+- title: 头衔/职业
+- bio: 深度生平（400字以上，包含教育、成就、挫折）
+- theories: 7个具体理论/主张/成就（数组，字符串列表）
+- stance: 性格与立场（400字以上，包含价值观、对待争议的态度）
+- system_prompt: 第一人称扮演提示词
+
+请确保所有字符串中的双引号都已正确转义（例如使用 \"），不要使用单引号包围 JSON 键或值。
+请开始你的思考。
+"""
+
+# ==========================================
+# Agent Class
+# ==========================================
+
 class RealGodAgent:
-    def __init__(self, max_steps: int = 5):
+    def __init__(self, max_steps: int = 10):
         self.max_steps = max_steps
-        self.history = []
+        self.searched_queries = set()
 
     def search(self, query: str) -> str:
-        """Executes a Google search using SerpAPI."""
+        """Executes a search using SerpAPI or DuckDuckGo fallback."""
         try:
+            # Fallback to DuckDuckGo if no API Key
+            if not SERPAPI_API_KEY or SERPAPI_API_KEY == "your_serpapi_key_here":
+                from duckduckgo_search import DDGS
+                try:
+                    with DDGS() as ddgs:
+                        results = list(ddgs.text(query, max_results=3))
+                        if results:
+                            snippets = []
+                            for r in results:
+                                title = r.get('title', '')
+                                body = r.get('body', '')
+                                snippets.append(f"Title: {title}\nSnippet: {body}")
+                            return "\n---\n".join(snippets)
+                        else:
+                            return "未找到相关结果 (DDG)。"
+                except Exception as e:
+                    return f"DuckDuckGo 搜索出错: {str(e)}"
+
+            # Use SerpAPI
             url = "https://serpapi.com/search"
             params = {
                 "q": query,
@@ -80,13 +112,12 @@ class RealGodAgent:
                 "hl": "zh-cn",
                 "gl": "cn"
             }
-            response = requests.get(url, params=params, timeout=10)
+            response = requests.get(url, params=params, timeout=30)
             if response.status_code == 200:
                 results = response.json()
-                # Extract organic results
                 snippets = []
                 if "organic_results" in results:
-                    for item in results["organic_results"][:3]: # Top 3 results
+                    for item in results["organic_results"][:3]:
                         title = item.get("title", "")
                         snippet = item.get("snippet", "")
                         snippets.append(f"Title: {title}\nSnippet: {snippet}")
@@ -100,195 +131,264 @@ class RealGodAgent:
         except Exception as e:
             return f"搜索出错: {str(e)}"
 
-    def run(self, prompt: str, n: int = 1, generated_names: List[str] = None) -> Generator[Dict[str, Any], None, None]:
-        """
-        Runs the ReAct loop and yields events.
-        """
-        self.history = []
-        current_step = 0
-        search_count = 0  # Track search calls
+    def _call_llm(self, messages: List[Dict[str, str]], stream: bool = True) -> Generator[Dict[str, Any], None, str]:
+        """Helper to call LLM and yield events."""
+        # Increase timeout to 60s for better stability
+        response_stream = get_chat_completion(messages, stream=True, timeout=60)
         
-        # Modified prompt to include context of already generated personas
-        context_instruction = ""
-        # Fix unhashable type: 'slice' error by ensuring generated_names is a list
+        full_text = ""
+        
+        if not response_stream:
+            yield {"type": "error", "content": "LLM未响应"}
+            return ""
+
+        for chunk in response_stream:
+            if not chunk.choices: continue
+            delta = chunk.choices[0].delta.content or ""
+            if not delta: continue
+            
+            full_text += delta
+            # Stream raw delta as thought_chunk
+            yield {"type": "thought_chunk", "content": delta}
+
+        return full_text
+
+    def _get_persona_count(self, prompt: str) -> int:
+        """Determines N using a lightweight LLM call."""
+        try:
+            sys_prompt = COUNT_EXTRACT_PROMPT.format(user_prompt=prompt)
+            # Use a fresh, short call with 60s timeout
+            response = get_chat_completion([{"role": "user", "content": sys_prompt}], stream=False, timeout=60)
+            if response and response.choices:
+                content = response.choices[0].message.content.strip()
+                match = re.search(r"\d+", content)
+                if match:
+                    return int(match.group(0))
+            return 1
+        except Exception as e:
+            # Fallback
+            return 1
+
+    def run(self, prompt: str, n: int = None, generated_names: List[str] = None, db_existing_names: List[str] = None) -> Generator[Dict[str, Any], None, None]:
+        """
+        Runs the ReAct Agent loop.
+        """
         if generated_names is None:
             generated_names = []
             
-        if generated_names:
-            context_instruction = f"\n【已生成角色（请勿重复）】：{', '.join(generated_names)}"
+        if db_existing_names is None:
+            db_existing_names = []
             
-        # Add instruction to explicitly state who to generate next
-        # IMPORTANT: Force LLM to plan for only ONE persona, even if n > 1 in theory (we handle loop externally)
-        full_prompt = REACT_PROMPT_TEMPLATE.format(question=prompt + context_instruction, n=n)
+        # Combine for initial context awareness (but keep separate for logic)
+        # Maybe just use db_existing_names in prompt.
+
+        # Future for N
+        future_n = None
         
-        full_prompt += """
-
-**重要指令 (CRITICAL)**：
-1. 本次任务**只生成 1 位**角色。即使你在思考中提到了多个人物，也请一次只处理一个。
-2. 在开始搜索或生成之前，请先在 Thought 中明确指出：“本次我计划生成的人物是：[姓名]”。
-3. **严禁**在单次任务中搜索多个人物。严禁在搜索完第一个人物后继续搜索第二个人物。
-4. 每个角色的搜索次数严格限制为 **最多2次**。
-5. 一旦完成当前角色的信息收集，请立即使用 Finish[JSON数据] 结束。
-6. 你的 Finish 动作中，JSON 列表只包含 **1个** 对象。
-7. 如果搜索结果已经足够生成角色，**禁止**继续搜索，必须立即执行 Finish。
-8. 只要你生成了一个人物的JSON数据，就立即结束任务！
-"""
+        # 1. Start N determination in background if not provided
+        if n is None:
+             from concurrent.futures import ThreadPoolExecutor
+             executor = ThreadPoolExecutor(max_workers=1)
+             # Submit background task
+             future_n = executor.submit(self._get_persona_count, prompt)
+             
+             # Assume 1 for now to start immediately
+             n = 1 
+             yield {"type": "count", "content": 1}
         
-        messages = [{"role": "user", "content": full_prompt}]
+        # 2. Main Loop for each character
+        i = 0
+        session_context = "无"
+        
+        # Initialize searched queries set OUTSIDE the loop to persist across characters
+        self.searched_queries = set()
+        
+        while i < n:
+            current_index = i + 1
+            
+            # Check if N has been updated from background task
+            if future_n and future_n.done():
+                 try:
+                     real_n = future_n.result()
+                     if real_n > n:
+                         n = real_n
+                         # Limit N to prevent abuse
+                         if n > 5: n = 5
+                         yield {"type": "count", "content": n}
+                         yield {"type": "thought", "content": f"已识别需求，更新计划生成 {n} 位角色。"}
+                     future_n = None # Handled
+                 except Exception as e:
+                     yield {"type": "error", "content": f"获取数量失败: {e}"}
+                     future_n = None
 
-        while current_step < self.max_steps:
-            current_step += 1
+            # Dynamic message that reflects current N
+            progress_msg = f"=== 开始生成第 {current_index} 位角色 (共 {n} 位) ==="
+            yield {"type": "thought_start", "content": progress_msg}
+            yield {"type": "progress", "current": current_index, "total": n}
             
-            # Call LLM
-            response = get_chat_completion(messages)
-            if not response or not response.choices:
-                yield {"type": "error", "content": "LLM未响应"}
-                return
+            # Reset per-character state (but NOT searched_queries)
+            character_history = [] 
+            search_count = 0
+            
+            # Construct System Prompt
+            sys_msg = REACT_SYS_PROMPT.format(
+                user_prompt=prompt,
+                current_index=current_index,
+                total_count=n,
+                generated_names=", ".join(generated_names) if generated_names else "无",
+                db_existing_names=", ".join(db_existing_names[:50]) + "..." if len(db_existing_names) > 50 else (", ".join(db_existing_names) if db_existing_names else "无"),
+                session_context=session_context
+            )
+            
+            character_history.append({"role": "system", "content": sys_msg})
+            character_history.append({"role": "user", "content": "请开始。"})
+            
+            # Pre-fill thought to reduce perceived latency
+            yield {"type": "thought_chunk", "content": "正在根据当前进度和已生成角色列表，规划本轮角色的生成策略...\n"}
+            
+            # ReAct Inner Loop
+            step = 0
+            finished = False
+            
+            while step < self.max_steps and not finished:
+                step += 1
+                
+                # Periodically check for N update inside the loop too
+                if future_n and future_n.done():
+                     try:
+                         real_n = future_n.result()
+                         if real_n > n:
+                             n = real_n
+                             if n > 5: n = 5
+                             yield {"type": "count", "content": n}
+                             yield {"type": "thought", "content": f"已识别需求，更新计划生成 {n} 位角色。"}
+                         future_n = None
+                     except Exception:
+                         future_n = None
 
-            response_text = response.choices[0].message.content
-            
-            # Parse Thought and Action
-            thought, action = self._parse_output(response_text)
-            
-            if thought:
-                yield {"type": "thought", "content": thought}
-                # Add to history context for next turn
-                # Note: We don't append full prompt again, just the conversation flow
-                # Actually, for ZhipuAI/OpenAI, we should append the assistant message
-                messages.append({"role": "assistant", "content": response_text})
-            
-            if not action:
-                # If no action found but has thought, maybe it's just thinking. 
-                # But strict format requires Action. 
-                # If it outputted just thought, we might need to prompt it to continue?
-                # For now, let's assume it follows format or we break.
-                # However, sometimes LLM outputs "Thought: ... \nAction: ..." in one go.
-                pass
-
-            if action:
-                if action.startswith("Finish"):
-                    # Extract content inside Finish[...]
-                    # Use a more robust regex that handles multiline content inside brackets
-                    # and potential trailing text
-                    match = re.search(r"Finish\[(.*)\]", action, re.DOTALL)
-                    if match:
-                        json_str = match.group(1)
-                    else:
-                        # Fallback: maybe the whole action content is the JSON
-                        json_str = action.replace("Finish", "").strip()
+                # Call LLM
+                full_resp = yield from self._call_llm(character_history)
+                character_history.append({"role": "assistant", "content": full_resp})
+                
+                # Parse Thought/Action
+                thought, action = self._parse_output(full_resp)
+                
+                if thought:
+                    yield {"type": "thought", "content": thought}
+                
+                if not action:
+                    # If LLM didn't output action, prompt it
+                    if step >= self.max_steps:
+                         yield {"type": "error", "content": "达到最大步数，停止。"}
+                         break
+                    obs = "系统提示：请输出 Action。例如 Action: Search[...] 或 Action: Finish[...]"
+                    character_history.append({"role": "user", "content": f"Observation: {obs}"})
+                    continue
                     
-                    # Clean up common LLM artifacts like "JSON数据]" prefix
-                    json_str = json_str.replace("JSON数据]", "").strip()
-                    if json_str.startswith("[") and json_str.endswith("]"):
-                         pass # Looks like valid JSON array
+                # Execute Action
+                if "Search" in action:
+                    tool_name, query = self._parse_action(action)
                     
-                    # Parse JSON
-                    personas = parse_json_from_response(json_str)
-                    if personas:
-                         # Ensure we only return 1 persona as requested
-                         if isinstance(personas, list) and len(personas) > 1:
-                             personas = personas[:1]
-                         elif isinstance(personas, dict): # Handle case where LLM returns single object instead of list
-                             personas = [personas]
-                             
-                         yield {"type": "result", "content": personas}
-                    else:
-                         # Try to find JSON array in the thought/action text if parsing failed
-                         # Look for the LAST JSON array-like structure
-                         # Use finditer to avoid greedy matching issues
-                         json_candidates = list(re.finditer(r"\[\s*\{.*?\}\s*\]", response_text, re.DOTALL))
-                         
-                         if json_candidates:
-                             for match in reversed(json_candidates):
-                                 candidate = match.group(0)
-                                 personas = parse_json_from_response(candidate)
-                                 if personas:
-                                     # Ensure we only return 1 persona as requested
-                                     if isinstance(personas, list) and len(personas) > 1:
-                                         personas = personas[:1]
-                                     elif isinstance(personas, dict):
-                                         personas = [personas]
-                                         
-                                     yield {"type": "result", "content": personas}
-                                     return
-                         
-                         yield {"type": "error", "content": "生成的JSON格式无效"}
-                    return
-
-                # Parse Tool
-                tool_name, tool_input = self._parse_action(action)
-                if tool_name == "Search":
+                    # Deduplication Check
+                    if query in self.searched_queries:
+                        obs = f"系统提示：你已经搜索过 '{query}' 了。请尝试不同的关键词，或者如果信息足够，请直接 Finish。"
+                        yield {"type": "observation", "content": obs}
+                        character_history.append({"role": "user", "content": f"Observation: {obs}"})
+                        continue
+                        
+                    self.searched_queries.add(query)
+                    search_count += 1
+                    
+                    yield {"type": "action", "content": f"搜索: {query}"}
+                    obs = self.search(query)
+                    yield {"type": "observation", "content": obs}
+                    
+                    # Prepare Next Prompt
+                    next_user_msg = f"Observation: {obs}"
+                    
+                    # **Logic Injection**: Force Finish after 2nd search
                     if search_count >= 2:
-                        # Skip execution, force LLM to proceed
-                        observation = "搜索次数已达上限（2次）。你已拥有足够信息，请立即使用 Finish[JSON数据] 生成角色。不要再进行任何搜索！"
-                        yield {"type": "error", "content": "搜索限制触发：强制停止搜索，请立即生成结果"}
-                        messages.append({"role": "user", "content": f"Observation: {observation}"})
-                    else:
-                        search_count += 1
-                        yield {"type": "action", "content": f"正在搜索: {tool_input}"}
-                        observation = self.search(tool_input)
-                        yield {"type": "observation", "content": observation}
-                        # Append observation to history
-                        messages.append({"role": "user", "content": f"Observation: {observation}"})
-                else:
-                    yield {"type": "error", "content": f"未知工具: {tool_name}"}
-                    return
-            else:
-                 # No action found, maybe finished or error?
-                 if "JSON" in response_text or "[" in response_text:
-                     # Try to parse JSON directly if it forgot "Finish"
-                     personas = parse_json_from_response(response_text)
-                     if personas and isinstance(personas, list):
-                         yield {"type": "result", "content": personas}
-                         return
-                 
-                 yield {"type": "error", "content": "LLM未返回有效指令"}
-                 return
+                        next_user_msg += "\n\n[系统提示]: 这是你的最后一次搜索。请根据现有信息，立即使用 Action: Finish[...] 生成角色 JSON。"
+                    
+                    character_history.append({"role": "user", "content": next_user_msg})
 
-    def _parse_output(self, text: str):
-        # Flexible parsing
+                elif "Finish" in action:
+                    json_str = self._parse_action_input(action)
+                    
+                    # Try to parse JSON
+                    persona = parse_json_from_response(json_str)
+                    
+                    if persona:
+                        if isinstance(persona, dict):
+                            persona = [persona]
+                        
+                        # Add to generated names context
+                        for p in persona:
+                            if "name" in p:
+                                name = p["name"]
+                                generated_names.append(name)
+                                
+                                # Update session context for next character
+                                bio_snippet = p.get("bio", "")[:100] + "..."
+                                if session_context == "无":
+                                    session_context = ""
+                                session_context += f"\n- 已生成角色: {name} ({p.get('title', '未知')})\n  简介: {bio_snippet}\n"
+                                
+                        yield {"type": "result", "content": persona}
+                        finished = True
+                    else:
+                        obs = "系统提示：JSON 解析失败，请检查格式（确保包含 name, bio, theories 等字段）并重试。"
+                        yield {"type": "error", "content": obs}
+                        character_history.append({"role": "user", "content": f"Observation: {obs}"})
+                
+                else:
+                    obs = "系统提示：未知指令。请严格使用 Action: Search[...] 或 Action: Finish[...]"
+                    character_history.append({"role": "user", "content": f"Observation: {obs}"})
+
+            # Increment loop counter
+            i += 1
+            
+        # Ensure executor shutdown if it was created
+        if 'executor' in locals():
+            executor.shutdown(wait=False)
+
+    def _parse_output(self, text: str) -> Tuple[Optional[str], Optional[str]]:
+        """Parses Thought and Action from LLM output."""
         thought = None
         action = None
         
-        # 1. 优先尝试标准的 Thought: ... Action: ... 结构
+        # Regex for Thought
         thought_match = re.search(r"Thought:\s*(.*?)(?=\nAction:|$)", text, re.DOTALL)
         if thought_match:
             thought = thought_match.group(1).strip()
             
+        # Regex for Action
         action_match = re.search(r"Action:\s*(.*?)$", text, re.DOTALL)
         if action_match:
             action = action_match.group(1).strip()
-            # Clean up action (remove trailing text if any)
-            # Finish[...] can be multiline, so be careful not to split it
-            if "Finish" not in action:
-                action = action.split("\n")[0]
-        
-        # 2. 如果没有 Action，尝试从文本末尾找 Finish
-        if not action:
+            # Clean up: sometimes LLM adds explanation after Action, but usually Action is last.
+            # However, Finish[...] might be multiline.
+            pass 
+        else:
+            # Fallback: sometimes Action is not at the very end or formatting is loose
             if "Finish[" in text:
                  match = re.search(r"(Finish\[.*?\])", text, re.DOTALL)
-                 if match:
-                     action = match.group(1)
-            elif "Finish" in text: # Sometimes LLM forgets brackets or format
-                 # Try to find JSON block near Finish
-                 match = re.search(r"Finish.*?(\[.*\])", text, re.DOTALL)
-                 if match:
-                     action = f"Finish[{match.group(1)}]"
-        
+                 if match: action = match.group(1)
+            elif "Search[" in text:
+                 match = re.search(r"(Search\[.*?\])", text, re.DOTALL)
+                 if match: action = match.group(1)
+
         return thought, action
 
-    def _parse_action(self, action_text: str):
-        # Match Tool[Input]
-        # Allow multiline input for Search sometimes? No, search is usually one line.
-        # But allow loose matching
+    def _parse_action(self, action_text: str) -> Tuple[Optional[str], Optional[str]]:
+        """Parses Tool and Input from Action string."""
         match = re.search(r"(\w+)\[(.*?)\]", action_text, re.DOTALL)
         if match:
             return match.group(1), match.group(2)
         return None, None
 
-    def _parse_action_input(self, action_text: str):
-        # Match Finish[Input]
-        # Use DOTALL to capture newlines in JSON
+    def _parse_action_input(self, action_text: str) -> str:
+        """Extracts input from Finish[...] specifically."""
         match = re.search(r"Finish\[(.*)\]", action_text, re.DOTALL)
         if match:
             return match.group(1)

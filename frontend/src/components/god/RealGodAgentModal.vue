@@ -14,54 +14,98 @@
             <a-avatar v-if="msg.role === 'assistant'" style="background-color: #faad14">R</a-avatar>
             <a-avatar v-else style="background-color: #1890ff">U</a-avatar>
           </div>
-          <div class="content">
-            <!-- Normal Text Content -->
-            <div v-if="msg.content" class="bubble">
+          <div class="content-wrapper">
+            <!-- User Message -->
+            <div v-if="msg.role === 'user'" class="bubble user-bubble">
               {{ msg.content }}
             </div>
 
-            <!-- ReAct Log (Thoughts, Actions) -->
-            <div v-if="msg.logs && msg.logs.length > 0" class="react-logs">
-              <div v-for="(log, li) in msg.logs" :key="li" class="log-entry" :class="log.type">
-                <span class="log-icon" v-if="log.type === 'thought'">🤔</span>
-                <span class="log-icon" v-else-if="log.type === 'action'">🎬</span>
-                <span class="log-icon" v-else-if="log.type === 'observation'">👀</span>
-                <span class="log-icon" v-else-if="log.type === 'error'">❌</span>
-                <span class="log-text">{{ log.content }}</span>
-              </div>
-            </div>
-            
-            <!-- Generated Personas Preview -->
-            <div v-if="msg.personas && msg.personas.length > 0" class="persona-preview">
-              <a-card 
-                v-for="p in msg.personas" 
-                :key="p.id" 
-                class="persona-card"
-                size="small"
-                :title="p.name"
-              >
-                <template #extra>
-                  <a-tag color="orange">{{ p.title }}</a-tag>
-                </template>
-                <p class="persona-bio">{{ p.bio }}</p>
-                <div class="persona-tags">
-                  <a-tag v-for="t in p.theories.slice(0, 3)" :key="t">{{ t }}</a-tag>
-                </div>
-                <div class="actions">
-                  <a-button type="primary" size="small" @click="handleViewPersona">查看详情</a-button>
-                </div>
-              </a-card>
-            </div>
+            <!-- Assistant Message (Structured Items) -->
+            <template v-else>
+               <!-- Fallback for simple content -->
+               <div v-if="msg.content && (!msg.items || msg.items.length === 0)" class="bubble">
+                 {{ msg.content }}
+               </div>
+
+               <!-- Structured Items -->
+               <div v-for="(item, i) in msg.items" :key="i" class="msg-item">
+                 
+                 <!-- 1. Normal Text -->
+                 <div v-if="item.type === 'text'" class="bubble">
+                   {{ item.content }}
+                 </div>
+
+                 <!-- 2. Search Intent (Thought) -->
+                 <div v-else-if="item.type === 'thought'" class="bubble thought-bubble">
+                   <div class="thought-header">
+                     <span class="icon">🤔</span> 思考过程
+                   </div>
+                   <div class="thought-content">{{ item.content }}</div>
+                 </div>
+
+                 <!-- 3. Searching State -->
+                 <div v-else-if="item.type === 'search'" class="search-block">
+                   <div class="search-status">
+                     <span v-if="item.status === 'loading'" class="icon loading">⏳</span>
+                     <span v-else class="icon success">✅</span>
+                     <span class="status-text">
+                       {{ item.status === 'loading' ? '正在搜索' : '搜索完成' }}: 
+                       <span class="query">{{ item.query }}</span>
+                     </span>
+                   </div>
+                   <div v-if="item.status === 'done' && item.result" class="search-result">
+                     <a-collapse ghost size="small">
+                        <a-collapse-panel key="1" header="查看搜索结果">
+                          <pre>{{ item.result }}</pre>
+                        </a-collapse-panel>
+                     </a-collapse>
+                   </div>
+                 </div>
+
+                 <!-- 4. Generated Persona -->
+                 <div v-else-if="item.type === 'persona'" class="persona-block">
+                   <a-card 
+                    size="small" 
+                    class="persona-card"
+                    :title="item.persona.name"
+                   >
+                     <template #extra>
+                        <a-tag color="orange">{{ item.persona.title }}</a-tag>
+                     </template>
+                     <p class="persona-bio">{{ item.persona.bio }}</p>
+                     <div class="persona-tags">
+                        <a-tag v-for="t in (item.persona.theories || []).slice(0, 3)" :key="t">{{ t }}</a-tag>
+                     </div>
+                     <div class="actions">
+                        <a-button type="primary" size="small" @click="handleViewPersona">查看详情</a-button>
+                     </div>
+                   </a-card>
+                 </div>
+
+                 <!-- 6. Status/Progress -->
+                 <div v-else-if="item.type === 'status'" class="status-block">
+                   <div class="status-content">
+                     <span class="icon">🚀</span> 
+                     <span class="status-text">{{ item.content }}</span>
+                   </div>
+                 </div>
+
+                 <!-- 5. Error -->
+                 <div v-else-if="item.type === 'error'" class="bubble error-bubble">
+                   ❌ {{ item.content }}
+                 </div>
+               </div>
+            </template>
           </div>
         </div>
         
-        <div v-if="loading" class="message-item assistant">
+        <div v-if="loading && (!messages[messages.length-1]?.items || messages[messages.length-1]?.items?.length === 0)" class="message-item assistant">
           <div class="avatar">
             <a-avatar style="background-color: #faad14">R</a-avatar>
           </div>
-          <div class="content">
+          <div class="content-wrapper">
             <div class="bubble loading">
-              <a-spin size="small" /> 正在联网搜索并构思...
+              <a-spin size="small" /> 正在呼唤上帝...
             </div>
           </div>
         </div>
@@ -89,16 +133,21 @@ import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { usePersonaStore } from '@/stores/persona'
 
-interface LogEntry {
-  type: 'thought' | 'action' | 'observation' | 'error'
-  content: string
+interface MessageItem {
+  type: 'text' | 'thought' | 'search' | 'persona' | 'error' | 'status'
+  content?: string
+  query?: string
+  result?: string
+  status?: 'loading' | 'done'
+  persona?: any
+  current?: number
+  total?: number
 }
 
 interface ChatMessage {
   role: 'user' | 'assistant'
-  content?: string
-  logs?: LogEntry[]
-  personas?: any[]
+  content?: string // For user messages or simple assistant messages
+  items?: MessageItem[] // For structured assistant messages
   timestamp: number
 }
 
@@ -114,6 +163,7 @@ const input = ref('')
 const chatWindowRef = ref<HTMLElement | null>(null)
 const messages = ref<ChatMessage[]>([])
 const loading = ref(false)
+const totalToGenerate = ref(1)
 
 const visible = computed({
   get: () => props.open,
@@ -133,7 +183,8 @@ watch(() => props.open, (val) => {
     if (messages.value.length === 0) {
       messages.value.push({
         role: 'assistant',
-        content: '我是联网版上帝智能体。我可以搜索互联网信息，为您创造基于真实背景的深度角色。',
+        content: '',
+        items: [{ type: 'text', content: '我是联网版上帝智能体。我可以搜索互联网信息，为您创造基于真实背景的深度角色。' }],
         timestamp: Date.now()
       })
     }
@@ -142,7 +193,8 @@ watch(() => props.open, (val) => {
 })
 
 watch(() => messages.value.length, scrollToBottom)
-watch(() => messages.value[messages.value.length - 1]?.logs?.length, scrollToBottom)
+// Deep watch for items updates
+watch(() => messages.value[messages.value.length - 1]?.items, scrollToBottom, { deep: true })
 
 const handleSend = async () => {
   if (!input.value.trim() || loading.value) return
@@ -158,12 +210,12 @@ const handleSend = async () => {
   })
   
   loading.value = true
+  totalToGenerate.value = 1 // Reset
   
   // Prepare assistant message container
   const assistantMsg = ref<ChatMessage>({
     role: 'assistant',
-    content: '', // Start empty, maybe fill with "Thinking..."
-    logs: [],
+    items: [],
     timestamp: Date.now()
   })
   messages.value.push(assistantMsg.value)
@@ -174,11 +226,6 @@ const handleSend = async () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        // Add auth token if needed. Assuming cookie auth or header injection by proxy?
-        // The project uses `request.ts` (axios) which likely adds headers.
-        // For fetch, we need to add token manually if it's in localStorage or similar.
-        // Let's check `auth` store or `request.ts`.
-        // Usually `Authorization: Bearer ...`
         'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
       },
       body: JSON.stringify({ prompt, n: 1 })
@@ -193,39 +240,105 @@ const handleSend = async () => {
     
     if (!reader) throw new Error('No reader')
 
+    let buffer = ''
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
       
-      const chunk = decoder.decode(value, { stream: true })
-      // SSE format: data: {...}\n\n
-      const lines = chunk.split('\n\n')
+      buffer += decoder.decode(value, { stream: true })
       
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
+      const parts = buffer.split('\n\n')
+      buffer = parts.pop() || ''
+      
+      for (const line of parts) {
+        if (line.trim().startsWith('data: ')) {
           try {
-            const jsonStr = line.slice(6)
-            if (!jsonStr.trim()) continue
+            const jsonStr = line.trim().slice(6)
+            if (!jsonStr) continue
             
             const event = JSON.parse(jsonStr)
+            const items = assistantMsg.value.items || []
             
-            if (event.type === 'thought') {
-                assistantMsg.value.logs?.push({ type: 'thought', content: event.content })
-            } else if (event.type === 'action') {
-                assistantMsg.value.logs?.push({ type: 'action', content: event.content })
-            } else if (event.type === 'observation') {
-                assistantMsg.value.logs?.push({ type: 'observation', content: event.content })
-            } else if (event.type === 'result') {
-                if (!assistantMsg.value.personas) assistantMsg.value.personas = []
-                // Handle both single object and list results
-                if (Array.isArray(event.content)) {
-                    assistantMsg.value.personas.push(...event.content)
-                } else {
-                    assistantMsg.value.personas.push(event.content)
+            if (event.type === 'count') {
+                totalToGenerate.value = event.content
+                // Only show text if it's meaningful, or just skip pushing a separate bubble
+                // items.push({ type: 'text', content: `准备生成 ${totalToGenerate.value} 位真实角色...` })
+                
+            } else if (event.type === 'thought_start') {
+                // High level status update
+                items.push({ type: 'status', content: event.content })
+                
+            } else if (event.type === 'progress') {
+                // Update total and find the last status item to update
+                if (event.total) totalToGenerate.value = event.total
+                
+                // Find last status item
+                const lastStatus = [...items].reverse().find(i => i.type === 'status')
+                if (lastStatus) {
+                    lastStatus.content = `=== 开始生成第 ${event.current} 位角色 (共 ${event.total} 位) ===`
                 }
-                assistantMsg.value.content = `已为您生成 ${assistantMsg.value.personas.length} 位真实背景角色。`
+                
+            } else if (event.type === 'thought_chunk') {
+                // Find active thought item or create one
+                let lastItem = items[items.length - 1]
+                
+                // Skip creating thought item if the last item is status (which happens at start)
+                // But we need to put thoughts SOMEWHERE.
+                // If last item is status, create a thought item.
+                if (!lastItem || lastItem.type !== 'thought') {
+                    lastItem = { type: 'thought', content: '' }
+                    items.push(lastItem)
+                }
+                lastItem.content += event.content
+                
+            } else if (event.type === 'thought') {
+                // Finalized thought (cleaned up)
+                // Update the last thought item if exists
+                let lastItem = items[items.length - 1]
+                if (lastItem && lastItem.type === 'thought') {
+                    lastItem.content = event.content
+                } else {
+                    items.push({ type: 'thought', content: event.content })
+                }
+                
+            } else if (event.type === 'action') {
+                // e.g. "搜索: keyword"
+                const content = event.content
+                if (content.includes('搜索') || content.includes('Search')) {
+                    // Extract query roughly
+                    const query = content.replace(/搜索[:：]|Search\[|\]/g, '').trim()
+                    items.push({ type: 'search', query: query, status: 'loading', result: '' })
+                } else {
+                    // Other actions (like Finish) - maybe log as text?
+                    // Usually Finish is handled by result event, but the Action: Finish log exists.
+                    // We can ignore Finish action log or show as text.
+                    // Let's show as debug/text if not search
+                    // items.push({ type: 'text', content: `[Action] ${content}` })
+                }
+                
+            } else if (event.type === 'observation') {
+                // Update last search item
+                // Find the last search item that is loading
+                // Reverse search
+                let searchItem = [...items].reverse().find(i => i.type === 'search' && i.status === 'loading')
+                if (searchItem) {
+                    searchItem.status = 'done'
+                    searchItem.result = event.content
+                } else {
+                    // Fallback
+                    items.push({ type: 'text', content: `[Observation] ${event.content}` })
+                }
+                
+            } else if (event.type === 'result') {
+                // Persona(s) generated
+                const results = Array.isArray(event.content) ? event.content : [event.content]
+                for (const p of results) {
+                    items.push({ type: 'persona', persona: p })
+                }
+                items.push({ type: 'text', content: `✅ 生成完成！` })
+                
             } else if (event.type === 'error') {
-                assistantMsg.value.logs?.push({ type: 'error', content: event.content })
+                items.push({ type: 'error', content: event.content })
                 message.error('生成过程中发生错误')
             }
             
@@ -238,7 +351,7 @@ const handleSend = async () => {
     }
 
   } catch (error: any) {
-    assistantMsg.value.logs?.push({ type: 'error', content: error.message || '网络请求失败' })
+    assistantMsg.value.items?.push({ type: 'error', content: error.message || '网络请求失败' })
   } finally {
     loading.value = false
   }
@@ -288,11 +401,17 @@ const handleViewPersona = () => {
   align-self: flex-start;
 }
 
-.content {
+.content-wrapper {
   display: flex;
   flex-direction: column;
   gap: 8px;
   width: 100%;
+  /* Ensure bubbles don't stretch too wide if content is short */
+  align-items: flex-start; 
+}
+
+.message-item.user .content-wrapper {
+  align-items: flex-end;
 }
 
 .bubble {
@@ -303,61 +422,99 @@ const handleViewPersona = () => {
   font-size: 14px;
   line-height: 1.6;
   white-space: pre-wrap;
+  max-width: 100%;
 }
 
-.message-item.user .bubble {
+.user-bubble {
   background: #1890ff;
   color: #fff;
   border-radius: 8px 0 8px 8px;
 }
 
-.message-item.assistant .bubble {
-  border-radius: 0 8px 8px 8px;
+.thought-bubble {
+  background: #f8f9fa;
+  border: 1px dashed #d9d9d9;
+  color: #666;
+  font-size: 13px;
+  width: 100%;
 }
 
-.react-logs {
-  background: #2d2d2d;
-  color: #ccc;
-  padding: 12px;
-  border-radius: 8px;
-  font-family: monospace;
-  font-size: 12px;
+.thought-header {
+  font-weight: 500;
+  margin-bottom: 4px;
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  max-height: 300px;
-  overflow-y: auto;
+  align-items: center;
+  gap: 4px;
 }
 
-.log-entry {
+.search-block {
+  background: #e6f7ff;
+  border: 1px solid #91d5ff;
+  border-radius: 6px;
+  padding: 8px 12px;
+  width: 100%;
+  font-size: 13px;
+}
+
+.search-status {
   display: flex;
-  gap: 6px;
-  word-break: break-all;
+  align-items: center;
+  gap: 8px;
 }
 
-.log-icon {
-  flex-shrink: 0;
+.status-text {
+  flex: 1;
 }
 
-.log-entry.thought { color: #87d068; }
-.log-entry.action { color: #1890ff; font-weight: bold; }
-.log-entry.observation { color: #faad14; font-style: italic; }
-.log-entry.error { color: #ff4d4f; }
+.query {
+  font-weight: 500;
+  color: #1890ff;
+}
+
+.search-result {
+  margin-top: 8px;
+  background: #fff;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.persona-block {
+  width: 100%;
+}
+
+.error-bubble {
+  background: #fff1f0;
+  border: 1px solid #ffa39e;
+  color: #cf1322;
+}
+
+.status-block {
+  width: 100%;
+  margin: 8px 0;
+  text-align: center;
+}
+
+.status-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #e6f7ff;
+  border: 1px solid #1890ff;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  color: #1890ff;
+  font-weight: 500;
+}
 
 .loading {
   font-style: italic;
   color: #8c8c8c;
 }
 
-.persona-preview {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-top: 8px;
-}
-
 .persona-card {
   width: 100%;
+  margin-bottom: 8px;
 }
 
 .persona-bio {

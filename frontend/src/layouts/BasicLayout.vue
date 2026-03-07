@@ -40,6 +40,13 @@
             <span>API测试</span>
           </router-link>
         </a-menu-item>
+
+        <a-menu-divider />
+        
+        <a-menu-item key="logout" @click="handleLogout">
+          <logout-outlined />
+          <span>退出登录</span>
+        </a-menu-item>
       </a-menu>
     </a-layout-sider>
     
@@ -57,16 +64,24 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import {
   DashboardOutlined,
   TeamOutlined,
   CommentOutlined,
-  ToolOutlined
+  ToolOutlined,
+  LogoutOutlined
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
+const router = useRouter()
+const authStore = useAuthStore()
 const collapsed = ref(false)
+
+const handleLogout = async () => {
+  await authStore.logout()
+}
 
 const selectedKeys = computed(() => {
   if (route.path === '/' || route.path.startsWith('/dashboard')) return ['dashboard']

@@ -15,7 +15,7 @@ def test_god_realism():
     # 提示词要求更具体，迫使必须搜索
     agent = RealGodAgent(max_steps=10)
     
-    prompt = "请生成两位当今科技界的领军人物：OpenAI 的 CEO 山姆·奥特曼（Sam Altman）和 特斯拉 CEO 埃隆·马斯克（Elon Musk）。必须包含他们最新的职业动态（2023-2024年）以及他们在AI安全问题上的具体分歧。"
+    prompt = "生成两位datawhale的角色"
     
     print(f"测试提示词: {prompt}\n")
     print("正在启动 ReAct 循环监测...")
@@ -27,7 +27,8 @@ def test_god_realism():
     has_observation = False
     
     # 手动迭代生成器以捕获每个事件
-    generator = agent.run(prompt, n=2)
+    # Pass n=None to test dynamic N detection
+    generator = agent.run(prompt, n=None)
     
     try:
         while True:
@@ -58,9 +59,21 @@ def test_god_realism():
                 print(f"  {preview}")
             
             elif e_type == "result":
-                results = content
+                # Handle single or list results and accumulate
+                new_results = content
+                if isinstance(new_results, list):
+                    if isinstance(results, list):
+                        results.extend(new_results)
+                    else:
+                        results = new_results
+                else:
+                    if isinstance(results, list):
+                        results.append(new_results)
+                    else:
+                        results = [new_results]
+                
                 print(f"\n[最终生成结果] 🎉:")
-                print(json.dumps(results, ensure_ascii=False, indent=2))
+                print(json.dumps(content, ensure_ascii=False, indent=2))
             
             elif e_type == "error":
                 print(f"\n[错误] ❌: {content}")

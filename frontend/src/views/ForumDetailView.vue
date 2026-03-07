@@ -106,7 +106,7 @@ const starting = ref(false)
 const isParticipantModalVisible = ref(false)
 const isSystemLogModalVisible = ref(false)
 const forumId = Number(route.params.id)
-const { connect, disconnect } = useForumWebSocket(forumId)
+const { connect, disconnect, isConnected } = useForumWebSocket(forumId)
 
 const showParticipantModal = () => {
   isParticipantModalVisible.value = true
@@ -136,7 +136,11 @@ const handleDelete = async () => {
 const handleStart = async () => {
     starting.value = true
     try {
+        if (!isConnected.value) {
+            connect()
+        }
         await forumStore.startForum(forumId)
+        await forumStore.fetchMessages(forumId)
     } finally {
         starting.value = false
     }

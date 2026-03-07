@@ -5,7 +5,7 @@ from jose import jwt
 # SECRET_KEY should be in env vars in production
 SECRET_KEY = "CHANGE_THIS_TO_A_SECURE_SECRET_KEY"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7 # 7 days
 
 def create_access_token(subject: Union[str, Any], expires_delta: Optional[timedelta] = None) -> str:
     if expires_delta:

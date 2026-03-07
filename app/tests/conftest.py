@@ -1,50 +1,52 @@
 import pytest
-from sqlalchemy import create_engine, event
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
+import os
 from fastapi.testclient import TestClient
+import libsql_client
 
-from app.db.session import Base, get_db
+from app.db.client import get_db, db_manager
 from app.main import app as fastapi_app
-import app.models # Ensure models are registered
 
-# Use in-memory SQLite for testing with StaticPool to share connection
-SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
-
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, 
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool
-)
-
-# Enable Foreign Keys for SQLite
-@event.listens_for(engine, "connect")
-def set_sqlite_pragma(dbapi_connection, connection_record):
-    cursor = dbapi_connection.cursor()
-    cursor.execute("PRAGMA foreign_keys=ON")
-    cursor.close()
-
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# Use a temporary file for SQLite testing
+TEST_DB_PATH = "test_madf.db"
+TEST_DB_URL = f"file:{TEST_DB_PATH}"
 
 @pytest.fixture(scope="function")
 def db():
-    Base.metadata.create_all(bind=engine)
-    session = TestingSessionLocal()
+    # Setup: Create a fresh database for each test
+    if os.path.exists(TEST_DB_PATH):
+        os.remove(TEST_DB_PATH)
+    
+    # Update db_manager to use test DB
+    original_url = db_manager.url
+    db_manager.url = TEST_DB_URL
+    db_manager.is_remote = False
+    
+    # Initialize schema
+    db_manager.init_db()
+    
+    client = db_manager.get_connection()
     try:
-        yield session
+        yield client
     finally:
-        session.close()
-        Base.metadata.drop_all(bind=engine)
+        client.close()
+        # Teardown: Remove test database
+        if os.path.exists(TEST_DB_PATH):
+            try:
+                os.remove(TEST_DB_PATH)
+            except:
+                pass
+        db_manager.url = original_url
 
 @pytest.fixture(scope="function")
 def client(db):
     def override_get_db():
+        client = db_manager.get_connection()
         try:
-            yield db
+            yield client
         finally:
-            pass
+            client.close()
     
     fastapi_app.dependency_overrides[get_db] = override_get_db
-    with TestClient(fastapi_app) as c:
+    with TestClient(fastapi_app, raise_server_exceptions=False) as c:
         yield c
     fastapi_app.dependency_overrides.clear()

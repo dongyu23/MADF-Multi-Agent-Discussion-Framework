@@ -39,17 +39,16 @@ const props = defineProps<{
   content: string
   timestamp: string
   isSelf: boolean
+  isStreaming?: boolean
   moderatorId?: number | null
 }>()
 
 const isModerator = computed(() => {
-  // If moderatorId is present, it's a moderator message
-  // Or check name if ID is missing (legacy)
   return !!props.moderatorId || props.speakerName.includes('主持人')
 })
 
 const isStreaming = computed(() => {
-    return false
+    return props.isStreaming || false
 })
 
 const formatTime = (isoString: string) => {

@@ -193,7 +193,8 @@ const getAvatarColor = (topic: string) => {
   return colors[index]
 }
 
-const showModal = () => {
+const showModal = async () => {
+  await forumStore.fetchModerators()
   visible.value = true
   formState.topic = ''
   formState.participant_ids = []
@@ -209,6 +210,12 @@ const handleOk = async () => {
   
   submitting.value = true
   try {
+    await forumStore.fetchModerators()
+    if (formState.moderator_id && !forumStore.moderators.some(m => m.id === formState.moderator_id)) {
+      formState.moderator_id = undefined
+      message.warning('所选主持人已失效，请重新选择')
+      return
+    }
     await forumStore.createForum(formState.topic, formState.participant_ids, formState.duration, formState.moderator_id)
     visible.value = false
   } catch (e: unknown) {

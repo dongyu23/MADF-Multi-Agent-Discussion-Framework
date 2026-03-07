@@ -33,6 +33,6 @@ describe('HomeView', () => {
         ]
       }
     })
-    expect(wrapper.text()).toContain('Agent Chat')
+    expect(wrapper.text()).toContain('欢迎回来')
   })
 })

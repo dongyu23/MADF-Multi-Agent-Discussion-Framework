@@ -51,6 +51,9 @@
               <a-button block @click="$router.push('/forums')" class="action-btn">
                 <comment-outlined /> 发起新讨论
               </a-button>
+              <a-button block danger @click="authStore.logout()" class="action-btn">
+                <logout-outlined /> 退出登录
+              </a-button>
             </div>
           </a-card>
 
@@ -77,7 +80,7 @@ import { onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useForumStore } from '@/stores/forum'
 import { usePersonaStore } from '@/stores/persona'
-import { TeamOutlined, CommentOutlined } from '@ant-design/icons-vue'
+import { TeamOutlined, CommentOutlined, LogoutOutlined } from '@ant-design/icons-vue'
 
 const authStore = useAuthStore()
 const forumStore = useForumStore()

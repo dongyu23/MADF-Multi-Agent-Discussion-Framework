@@ -5,61 +5,121 @@ export function useForumWebSocket(forumId: number) {
   const store = useForumStore()
   let ws: WebSocket | null = null
   const isConnected = ref(false)
+  let reconnectAttempts = 0
+  const maxReconnectAttempts = 10
+  let heartbeatInterval: any = null
+  let reconnectTimeout: any = null
+
+  const resolveWsBase = () => {
+    const raw = (import.meta.env.VITE_WS_BASE_URL as string | undefined)?.trim()
+    if (!raw) {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+      return `${protocol}//${window.location.host}`
+    }
+    if (raw.startsWith('ws://') || raw.startsWith('wss://')) {
+      return raw.replace(/\/$/, '')
+    }
+    if (raw.startsWith('http://') || raw.startsWith('https://')) {
+      return raw.replace(/^http/, 'ws').replace(/\/$/, '')
+    }
+    return raw.replace(/\/$/, '')
+  }
+
+  const clearTimers = () => {
+    if (heartbeatInterval) clearInterval(heartbeatInterval)
+    if (reconnectTimeout) clearTimeout(reconnectTimeout)
+    heartbeatInterval = null
+    reconnectTimeout = null
+  }
 
   const connect = () => {
-    if (ws) ws.close()
+    if (ws) {
+        if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+            return
+        }
+        ws.close()
+    }
     
-    // Use correct WS URL based on environment
-    // In dev, Vite proxies /api to backend. 
-    // WS needs to connect to the same host/port as the page, but with ws protocol.
-    // If backend is on 8000 and frontend on 5173, and we rely on proxy:
-    // ws://localhost:5173/api/v1/forums/1/ws -> Vite Proxy -> ws://127.0.0.1:8000/api/v1/forums/1/ws
+    const wsBase = resolveWsBase()
+    const wsUrl = `${wsBase}/api/v1/forums/${forumId}/ws`
     
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const host = window.location.host
-    const wsUrl = `${protocol}//${host}/api/v1/forums/${forumId}/ws`
-    
-    console.log('Connecting to WS:', wsUrl)
+    console.log(`[WS] Connecting to: ${wsUrl}`)
     
     try {
       ws = new WebSocket(wsUrl)
       
       ws.onopen = () => {
-        console.log('WS Connected')
+        console.log('[WS] Connected successfully')
         isConnected.value = true
+        reconnectAttempts = 0 // Reset attempts on success
+        store.fetchMessages(forumId)
+        
+        clearTimers()
+        
+        // Ping every 30s to keep alive
+        heartbeatInterval = setInterval(() => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('ping')
+            }
+        }, 30000)
       }
       
       ws.onmessage = (event) => {
         try {
+          if (event.data === 'pong') return
+          
           const data = JSON.parse(event.data)
+          
           if (data.type === 'new_message' && data.data) {
              store.addMessage(data.data)
           } else if (data.type === 'message_chunk' && data.data) {
              store.updateStreamingMessage(data.data)
           } else if (data.type === 'system_log' && data.data) {
              store.addSystemLog(data.data)
+          } else if (data.type === 'system' && data.content) {
+             store.addSystemLog({
+               timestamp: new Date().toISOString(),
+               level: 'info',
+               content: data.content,
+               source: 'System'
+             })
           }
         } catch (e) {
-          console.error('WS Parse Error', e)
+          console.error('[WS] Parse Error', e)
         }
       }
       
-      ws.onclose = () => {
-        console.log('WS Closed')
+      ws.onclose = (e) => {
+        console.log(`[WS] Closed (Code: ${e.code}, Reason: ${e.reason})`)
         isConnected.value = false
+        clearTimers()
+        
+        // Don't reconnect if it was a normal closure or if max attempts reached
+        if (e.code !== 1000 && reconnectAttempts < maxReconnectAttempts) {
+            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000) // Exponential backoff max 30s
+            console.log(`[WS] Reconnecting in ${delay}ms (Attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})...`)
+            
+            reconnectTimeout = setTimeout(() => {
+                reconnectAttempts++
+                connect()
+            }, delay)
+        } else if (reconnectAttempts >= maxReconnectAttempts) {
+             console.error('[WS] Max reconnect attempts reached. Please refresh page.')
+        }
       }
       
       ws.onerror = (e) => {
-        console.error('WS Error', e)
+        console.error('[WS] Error:', e)
       }
     } catch (e) {
-      console.error('WS Connection Failed', e)
+      console.error('[WS] Connection Creation Failed', e)
     }
   }
 
   const disconnect = () => {
+    clearTimers()
     if (ws) {
-      ws.close()
+      ws.close(1000, "Client initiated disconnect") // Normal closure
       ws = null
       isConnected.value = false
     }

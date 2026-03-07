@@ -1,20 +1,19 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from typing import List, Annotated
+from typing import List, Annotated, Any
 
 from app.db.session import get_db
 from app.schemas import PersonaCreate, PersonaUpdate, PersonaResponse
 from app.crud import create_persona, get_persona, update_persona, delete_persona
-from app.models import User
 from app.api.deps import get_current_user
+from app.db.client import fetch_all
 
 router = APIRouter()
 
 @router.post("/", response_model=PersonaResponse)
 def create_new_persona(
     persona: PersonaCreate, 
-    current_user: Annotated[User, Depends(get_current_user)],
-    db: Session = Depends(get_db)
+    current_user: Annotated[Any, Depends(get_current_user)],
+    db: Any = Depends(get_db)
 ):
     # If is_public is True, user must be admin or god (implied requirement)
     # For now, allow anyone to create personas but owner_id is current_user.id
@@ -27,8 +26,8 @@ def create_new_persona(
 
 @router.post("/batch/preset", response_model=List[PersonaResponse])
 def create_preset_personas(
-    current_user: Annotated[User, Depends(get_current_user)],
-    db: Session = Depends(get_db)
+    current_user: Annotated[Any, Depends(get_current_user)],
+    db: Any = Depends(get_db)
 ):
     """
     God mode: Batch create preset personas (Socrates, Aristotle, Confucius, etc.)
@@ -74,9 +73,6 @@ def create_preset_personas(
 
     created_personas = []
     for persona in presets:
-        # Check if already exists for this user to avoid duplicates? 
-        # For simplicity, we just create new ones. Or maybe check by name?
-        # Let's just create them.
         created = create_persona(db=db, persona=persona, owner_id=current_user.id)
         created_personas.append(created)
     
@@ -84,17 +80,19 @@ def create_preset_personas(
 
 @router.get("/", response_model=List[PersonaResponse])
 def read_personas(
-    db: Session = Depends(get_db),
+    db: Any = Depends(get_db),
     skip: int = 0, 
     limit: int = 100,
-    current_user: Annotated[User, Depends(get_current_user)] = None
+    current_user: Annotated[Any, Depends(get_current_user)] = None
 ):
-    from app.models import Persona
-    query = db.query(Persona).filter(Persona.owner_id == current_user.id)
-    return query.offset(skip).limit(limit).all()
+    rs = db.execute(
+        "SELECT * FROM personas WHERE owner_id = ? LIMIT ? OFFSET ?", 
+        [current_user.id, limit, skip]
+    )
+    return fetch_all(rs)
 
 @router.get("/{persona_id}", response_model=PersonaResponse)
-def read_persona(persona_id: int, db: Session = Depends(get_db)):
+def read_persona(persona_id: int, db: Any = Depends(get_db)):
     db_persona = get_persona(db, persona_id=persona_id)
     if db_persona is None:
         raise HTTPException(status_code=404, detail="Persona not found")
@@ -104,8 +102,8 @@ def read_persona(persona_id: int, db: Session = Depends(get_db)):
 def update_existing_persona(
     persona_id: int, 
     updates: PersonaUpdate, 
-    current_user: Annotated[User, Depends(get_current_user)],
-    db: Session = Depends(get_db)
+    current_user: Annotated[Any, Depends(get_current_user)],
+    db: Any = Depends(get_db)
 ):
     db_persona = get_persona(db, persona_id=persona_id)
     if not db_persona:
@@ -121,8 +119,8 @@ def update_existing_persona(
 @router.delete("/{persona_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_existing_persona(
     persona_id: int, 
-    current_user: Annotated[User, Depends(get_current_user)],
-    db: Session = Depends(get_db)
+    current_user: Annotated[Any, Depends(get_current_user)],
+    db: Any = Depends(get_db)
 ):
     db_persona = get_persona(db, persona_id=persona_id)
     if not db_persona:

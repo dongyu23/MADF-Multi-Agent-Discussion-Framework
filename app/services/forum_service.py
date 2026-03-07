@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from typing import Any
 from app.crud import (
     create_forum, 
     get_forum, 
@@ -15,16 +15,23 @@ from app.agent.agent import ParticipantAgent
 from fastapi import HTTPException
 
 class ForumService:
-    def __init__(self, db: Session):
+    def __init__(self, db: Any):
         self.db = db
 
     def create_new_forum(self, forum_in: ForumCreate, creator_id: int):
-        # Validate participants
-        for pid in forum_in.participant_ids:
-            p = get_persona(self.db, pid)
-            if not p:
-                raise HTTPException(status_code=404, detail=f"Persona {pid} not found")
-        
+        forum_in.participant_ids = list(dict.fromkeys(int(pid) for pid in forum_in.participant_ids))
+
+        if forum_in.participant_ids:
+            for pid in forum_in.participant_ids:
+                p = get_persona(self.db, pid)
+                if not p:
+                    raise HTTPException(status_code=404, detail=f"Persona {pid} not found")
+
+        if forum_in.moderator_id:
+            rs = self.db.execute("SELECT 1 FROM moderators WHERE id = ?", [forum_in.moderator_id])
+            if not rs.rows:
+                raise HTTPException(status_code=404, detail=f"Moderator {forum_in.moderator_id} not found")
+
         return create_forum(self.db, forum_in, creator_id)
 
     async def start_forum(self, forum_id: int, user_id: int, is_admin: bool = False, ablation_flags: dict = None):
@@ -71,14 +78,24 @@ class ForumService:
         
         new_msg = create_message(self.db, msg_in)
         
+        # RowObject or dict doesn't have .isoformat() if timestamp is string
+        # libsql returns DATETIME as string usually.
+        # We need to handle this.
+        # If new_msg is RowObject, timestamp is likely a string "YYYY-MM-DD HH:MM:SS"
+        ts = new_msg.timestamp
+        # Check if ts is string
+        if not isinstance(ts, str) and hasattr(ts, 'isoformat'):
+            ts = ts.isoformat()
+        
         await manager.broadcast(forum_id, {
             "type": "new_message",
             "data": {
                 "id": new_msg.id,
+                "forum_id": forum_id,
                 "speaker_name": new_msg.speaker_name,
                 "content": new_msg.content,
                 "persona_id": new_msg.persona_id,
-                "timestamp": new_msg.timestamp.isoformat()
+                "timestamp": ts
             }
         })
         

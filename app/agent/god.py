@@ -5,6 +5,56 @@ class God:
     def __init__(self):
         pass
 
+    def get_persona_count(self, prompt_text: str, default_n: int = 1) -> int:
+        """
+        Asks the LLM to determine the number of personas to generate based on the prompt.
+        Returns an integer.
+        """
+        prompt = f"""
+        分析以下用户描述，提取出用户明确想要生成的智能体角色数量。
+        
+        【用户描述】：
+        {prompt_text}
+        
+        【提取规则】：
+        1. 如果描述中明确提到了数量（如“两位”、“三个”、“生成5个”、“两个老师”等），请提取该数字。
+        2. 如果描述中没有明确提到数量，或者数量不明确，请输出默认值 {default_n}。
+        3. 你的输出必须且只能是一个纯数字，严禁包含任何文字、标点符号、解释、单位（如“位”、“个”等）。
+        
+        【输出示例】：
+        3
+        
+        【最终输出】：
+        """
+        
+        messages = [
+            {"role": "system", "content": "你是一个专业的数据解析器。你只输出数字。"},
+            {"role": "user", "content": prompt}
+        ]
+        
+        try:
+            response = get_chat_completion(messages)
+            if response and response.choices:
+                content = response.choices[0].message.content.strip()
+                # Use regex to find the first number in the output just in case
+                import re
+                # Check for common Chinese number characters just in case the LLM outputs "两位"
+                num_map = {"一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9, "十": 10}
+                
+                # Try finding digits first
+                match = re.search(r"\d+", content)
+                if match:
+                    return int(match.group())
+                
+                # If no digits, check for Chinese numbers in the content
+                for char, val in num_map.items():
+                    if char in content:
+                        return val
+                        
+            return default_n
+        except Exception:
+            return default_n
+
     def generate_personas(self, prompt_text, n=1):
         """
         Generates distinct personas based on a natural language prompt.

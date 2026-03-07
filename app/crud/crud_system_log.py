@@ -1,18 +1,20 @@
-from sqlalchemy.orm import Session
-from app.models.system_log import SystemLog
 from app.schemas.system_log import SystemLogCreate
+from app.db.client import fetch_one, fetch_all
 
-def create_system_log(db: Session, log: SystemLogCreate):
-    db_log = SystemLog(
-        forum_id=log.forum_id,
-        level=log.level,
-        source=log.source,
-        content=log.content
+def create_system_log(db, log: SystemLogCreate):
+    rs = db.execute(
+        """
+        INSERT INTO system_logs (forum_id, level, source, content)
+        VALUES (?, ?, ?, ?)
+        RETURNING *
+        """,
+        [log.forum_id, log.level, log.source, log.content]
     )
-    db.add(db_log)
-    db.commit()
-    db.refresh(db_log)
-    return db_log
+    return fetch_one(rs)
 
-def get_system_logs(db: Session, forum_id: int, limit: int = 100):
-    return db.query(SystemLog).filter(SystemLog.forum_id == forum_id).order_by(SystemLog.timestamp.asc()).limit(limit).all()
+def get_system_logs(db, forum_id: int, limit: int = 100):
+    rs = db.execute(
+        "SELECT * FROM system_logs WHERE forum_id = ? ORDER BY timestamp ASC LIMIT ?",
+        [forum_id, limit]
+    )
+    return fetch_all(rs)
