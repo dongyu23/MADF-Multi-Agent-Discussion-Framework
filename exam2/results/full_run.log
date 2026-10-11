@@ -1,0 +1,55 @@
+total jobs=18 todo=18
+[discussion] p1-step-5-preview-t1-r1 cond=full driver=step-5-preview rounds=3 turns={'Munger': 1, 'Jobs': 1, 'Feynman': 1} forced=0 (209.9s)
+[discussion] warmup-1 cond=full driver=step-5-preview rounds=3 turns={'Munger': 1, 'Feynman': 2} forced=2 (222.1s)
+[discussion] p1-step-5-preview-t1-r2 cond=full driver=step-5-preview rounds=3 turns={'Jobs': 1, 'Feynman': 1, 'Munger': 1} forced=0 (197.4s)
+[discussion] p1-step-5-preview-t2-r1 cond=full driver=step-5-preview rounds=3 turns={'Munger': 1, 'Feynman': 2} forced=1 (228.3s)
+[discussion] p1-step-3.7-flash-t1-r1 cond=full driver=step-3.7-flash rounds=5 turns={'Munger': 1, 'Feynman': 2, 'Jobs': 2} forced=0 (159.2s)
+[discussion] p1-step-5-preview-t2-r2 cond=full driver=step-5-preview rounds=3 turns={'Jobs': 1, 'Munger': 1, 'Feynman': 1} forced=0 (220.0s)
+[discussion] p1-step-3.7-flash-t1-r2 cond=full driver=step-3.7-flash rounds=4 turns={'Jobs': 1, 'Feynman': 2, 'Munger': 1} forced=0 (146.7s)
+[discussion] p1-step-3.7-flash-t2-r1 cond=full driver=step-3.7-flash rounds=4 turns={'Feynman': 1, 'Jobs': 1, 'Munger': 2} forced=1 (133.0s)
+[discussion] p1-step-3.7-flash-t2-r2 cond=full driver=step-3.7-flash rounds=5 turns={'Jobs': 1, 'Feynman': 2, 'Munger': 2} forced=1 (138.1s)
+[discussion] p2-full-r1 cond=full driver=step-5-preview rounds=3 turns={'Jobs': 2, 'Munger': 1} forced=2 (207.5s)
+[discussion] p2-full-r2 cond=full driver=step-5-preview rounds=3 turns={'Jobs': 2, 'Munger': 1} forced=1 (226.6s)
+[discussion] p2-full-r3 cond=full driver=step-5-preview rounds=3 turns={'Munger': 2, 'Jobs': 1} forced=1 (202.6s)
+[discussion] p2-round_robin-r1 cond=round_robin driver=step-5-preview rounds=3 turns={'Jobs': 1, 'Feynman': 1, 'Munger': 1} forced=0 (226.9s)
+[discussion] p2-round_robin-r2 cond=round_robin driver=step-5-preview rounds=3 turns={'Jobs': 1, 'Feynman': 1, 'Munger': 1} forced=0 (229.0s)
+[discussion] p2-round_robin-r3 cond=round_robin driver=step-5-preview rounds=3 turns={'Jobs': 1, 'Feynman': 1, 'Munger': 1} forced=0 (218.7s)
+[discussion] p2-no_jitter-r1 cond=no_jitter driver=step-5-preview rounds=3 turns={'Feynman': 1, 'Munger': 1, 'Jobs': 1} forced=2 (241.4s)
+[discussion] p2-no_jitter-r2 cond=no_jitter driver=step-5-preview rounds=3 turns={'Jobs': 1, 'Feynman': 1, 'Munger': 1} forced=1 (248.7s)
+[discussion] p2-no_jitter-r3 cond=no_jitter driver=step-5-preview rounds=3 turns={'Feynman': 2, 'Jobs': 1} forced=0 (219.8s)
+judge jobs=34
+[judge] p1-step-5-preview-t1-r1 by step-3.7-flash: overall=6.60 {'coherence': 5.0, 'depth': 8.0, 'consistency': 9.0, 'engagement': 3.0, 'relevance': 8.0}
+[judge] p1-step-5-preview-t1-r2 by step-3.7-flash: overall=7.00 {'coherence': 5.0, 'depth': 7.0, 'consistency': 9.0, 'engagement': 5.0, 'relevance': 9.0}
+[judge] p1-step-5-preview-t1-r1 by step-5-preview: overall=7.00 {'coherence': 5.0, 'depth': 7.0, 'consistency': 9.0, 'engagement': 5.0, 'relevance': 9.0}
+[judge] p1-step-5-preview-t2-r1 by step-5-preview: overall=7.80 {'coherence': 6.0, 'depth': 9.0, 'consistency': 9.0, 'engagement': 6.0, 'relevance': 9.0}
+[judge] p1-step-5-preview-t2-r1 by step-3.7-flash: overall=6.40 {'coherence': 6.0, 'depth': 6.0, 'consistency': 9.0, 'engagement': 4.0, 'relevance': 7.0}
+[judge] p1-step-5-preview-t1-r2 by step-5-preview: overall=6.60 {'coherence': 5.0, 'depth': 5.0, 'consistency': 9.0, 'engagement': 5.0, 'relevance': 9.0}
+[judge] p1-step-3.7-flash-t1-r1 by step-3.7-flash: overall=6.60 {'coherence': 6.0, 'depth': 7.0, 'consistency': 7.0, 'engagement': 5.0, 'relevance': 8.0}
+[judge] p1-step-5-preview-t2-r2 by step-3.7-flash: overall=6.20 {'coherence': 5.0, 'depth': 7.0, 'consistency': 9.0, 'engagement': 5.0, 'relevance': 5.0}
+[judge] p1-step-3.7-flash-t1-r1 by step-5-preview: overall=7.40 {'coherence': 6.0, 'depth': 8.0, 'consistency': 9.0, 'engagement': 5.0, 'relevance': 9.0}
+[judge] p1-step-3.7-flash-t1-r2 by step-3.7-flash: overall=6.00 {'coherence': 5.0, 'depth': 5.0, 'consistency': 8.0, 'engagement': 5.0, 'relevance': 7.0}
+[judge] p1-step-5-preview-t2-r2 by step-5-preview: overall=6.20 {'coherence': 5.0, 'depth': 5.0, 'consistency': 9.0, 'engagement': 5.0, 'relevance': 7.0}
+[judge] p1-step-3.7-flash-t2-r1 by step-3.7-flash: overall=6.80 {'coherence': 5.0, 'depth': 7.0, 'consistency': 9.0, 'engagement': 5.0, 'relevance': 8.0}
+[judge] p1-step-3.7-flash-t1-r2 by step-5-preview: overall=7.00 {'coherence': 6.0, 'depth': 7.0, 'consistency': 9.0, 'engagement': 6.0, 'relevance': 7.0}
+[judge] p1-step-3.7-flash-t2-r2 by step-3.7-flash: overall=6.40 {'coherence': 5.0, 'depth': 7.0, 'consistency': 7.0, 'engagement': 4.0, 'relevance': 9.0}
+[judge] p1-step-3.7-flash-t2-r1 by step-5-preview: overall=6.40 {'coherence': 5.0, 'depth': 6.0, 'consistency': 9.0, 'engagement': 5.0, 'relevance': 7.0}
+[judge] p1-step-3.7-flash-t2-r2 by step-5-preview: overall=6.60 {'coherence': 5.0, 'depth': 5.0, 'consistency': 9.0, 'engagement': 5.0, 'relevance': 9.0}
+[judge] p2-full-r1 by step-3.7-flash: overall=6.40 {'coherence': 5.0, 'depth': 7.0, 'consistency': 9.0, 'engagement': 6.0, 'relevance': 5.0}
+[judge] p2-full-r2 by step-3.7-flash: overall=6.40 {'coherence': 6.0, 'depth': 6.0, 'consistency': 6.0, 'engagement': 5.0, 'relevance': 9.0}
+[judge] p2-full-r1 by step-5-preview: overall=6.60 {'coherence': 6.0, 'depth': 5.0, 'consistency': 9.0, 'engagement': 6.0, 'relevance': 7.0}
+[judge] p2-full-r3 by step-3.7-flash: overall=5.80 {'coherence': 5.0, 'depth': 5.0, 'consistency': 5.0, 'engagement': 5.0, 'relevance': 9.0}
+[judge] p2-full-r2 by step-5-preview: overall=7.00 {'coherence': 5.0, 'depth': 8.0, 'consistency': 9.0, 'engagement': 5.0, 'relevance': 8.0}
+[judge] p2-round_robin-r1 by step-3.7-flash: overall=6.00 {'coherence': 5.0, 'depth': 6.0, 'consistency': 9.0, 'engagement': 2.0, 'relevance': 8.0}
+[judge] p2-full-r3 by step-5-preview: overall=6.20 {'coherence': 6.0, 'depth': 5.0, 'consistency': 9.0, 'engagement': 6.0, 'relevance': 5.0}
+[judge] p2-round_robin-r1 by step-5-preview: overall=7.40 {'coherence': 5.0, 'depth': 9.0, 'consistency': 9.0, 'engagement': 5.0, 'relevance': 9.0}
+[judge] p2-round_robin-r2 by step-3.7-flash: overall=6.00 {'coherence': 5.0, 'depth': 5.0, 'consistency': 9.0, 'engagement': 5.0, 'relevance': 6.0}
+[judge] p2-round_robin-r3 by step-3.7-flash: overall=5.80 {'coherence': 5.0, 'depth': 5.0, 'consistency': 5.0, 'engagement': 5.0, 'relevance': 9.0}
+[judge] p2-round_robin-r2 by step-5-preview: overall=6.60 {'coherence': 5.0, 'depth': 9.0, 'consistency': 5.0, 'engagement': 5.0, 'relevance': 9.0}
+[judge] p2-round_robin-r3 by step-5-preview: overall=7.20 {'coherence': 5.0, 'depth': 8.0, 'consistency': 9.0, 'engagement': 5.0, 'relevance': 9.0}
+[judge] p2-no_jitter-r1 by step-3.7-flash: overall=6.80 {'coherence': 5.0, 'depth': 6.0, 'consistency': 9.0, 'engagement': 5.0, 'relevance': 9.0}
+[judge] p2-no_jitter-r1 by step-5-preview: overall=7.20 {'coherence': 5.0, 'depth': 8.0, 'consistency': 9.0, 'engagement': 5.0, 'relevance': 9.0}
+[judge] p2-no_jitter-r2 by step-3.7-flash: overall=6.20 {'coherence': 5.0, 'depth': 7.0, 'consistency': 9.0, 'engagement': 3.0, 'relevance': 7.0}
+[judge] p2-no_jitter-r3 by step-3.7-flash: overall=5.60 {'coherence': 5.0, 'depth': 5.0, 'consistency': 8.0, 'engagement': 5.0, 'relevance': 5.0}
+[judge] p2-no_jitter-r2 by step-5-preview: overall=7.40 {'coherence': 5.0, 'depth': 9.0, 'consistency': 9.0, 'engagement': 5.0, 'relevance': 9.0}
+[judge] p2-no_jitter-r3 by step-5-preview: overall=7.20 {'coherence': 6.0, 'depth': 8.0, 'consistency': 8.0, 'engagement': 5.0, 'relevance': 9.0}
+ALL DONE

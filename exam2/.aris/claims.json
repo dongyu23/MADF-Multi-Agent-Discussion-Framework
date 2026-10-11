@@ -1,0 +1,12 @@
+[
+  {"id": "C1-interjudge-rho", "value": "-0.073", "source": "results/analysis/summary.json"},
+  {"id": "C2-leniency-offset", "value": "0.59", "source": "results/analysis/summary.json"},
+  {"id": "C3-selfpref-s5", "value": "+0.05", "source": "results/analysis/summary.json"},
+  {"id": "C4-selfpref-s37", "value": "-0.10", "source": "results/analysis/summary.json"},
+  {"id": "C5-ablation-nosig", "value": "0.600", "source": "results/analysis/summary.json"},
+  {"id": "C6-direction-flip", "value": "-0.467", "source": "results/analysis/summary.json"},
+  {"id": "C7-roundrobin-gini", "value": "0.000", "source": "results/analysis/summary.json"},
+  {"id": "C8-full-gini", "value": "0.167", "source": "results/analysis/summary.json"},
+  {"id": "C9-mean-abs-diff", "value": "0.729", "source": "results/analysis/summary.json"},
+  {"id": "C10-depth-rho-negative", "value": "-0.347", "source": "results/analysis/summary.json"}
+]

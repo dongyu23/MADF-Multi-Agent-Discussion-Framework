@@ -1,0 +1,233 @@
+{
+  "factorial": {
+    "step-3.7-flash | step-3.7-flash": {
+      "n": 4,
+      "mean": 6.45,
+      "std": 0.342,
+      "scores": [
+        6.6,
+        6.0,
+        6.8,
+        6.4
+      ]
+    },
+    "step-3.7-flash | step-5-preview": {
+      "n": 4,
+      "mean": 6.85,
+      "std": 0.443,
+      "scores": [
+        7.4,
+        7.0,
+        6.4,
+        6.6
+      ]
+    },
+    "step-5-preview | step-3.7-flash": {
+      "n": 4,
+      "mean": 6.55,
+      "std": 0.342,
+      "scores": [
+        6.6,
+        7.0,
+        6.4,
+        6.2
+      ]
+    },
+    "step-5-preview | step-5-preview": {
+      "n": 4,
+      "mean": 6.9,
+      "std": 0.683,
+      "scores": [
+        7.0,
+        6.6,
+        7.8,
+        6.2
+      ]
+    }
+  },
+  "self_preference_bias": {
+    "step-3.7-flash": {
+      "self_mean": 6.45,
+      "other_mean": 6.55,
+      "self_preference_delta": -0.1,
+      "per_dimension": {
+        "coherence": 0.0,
+        "depth": -0.5,
+        "consistency": -1.25,
+        "engagement": 0.5,
+        "relevance": 0.75
+      }
+    },
+    "step-5-preview": {
+      "self_mean": 6.9,
+      "other_mean": 6.85,
+      "self_preference_delta": 0.05,
+      "per_dimension": {
+        "coherence": -0.25,
+        "depth": 0.0,
+        "consistency": 0.0,
+        "engagement": 0.0,
+        "relevance": 0.5
+      }
+    }
+  },
+  "inter_judge_agreement": {
+    "n": 17,
+    "spearman_rho": -0.073,
+    "mean_abs_diff": 0.729,
+    "per_dimension_rho": {
+      "coherence": 0.304,
+      "depth": -0.347,
+      "consistency": -0.056,
+      "engagement": 0.249,
+      "relevance": 0.14
+    }
+  },
+  "ablation": {
+    "full": {
+      "step-3.7-flash": {
+        "n": 3,
+        "mean": 6.2,
+        "std": 0.346,
+        "scores": [
+          6.4,
+          6.4,
+          5.8
+        ]
+      },
+      "step-5-preview": {
+        "n": 3,
+        "mean": 6.6,
+        "std": 0.4,
+        "scores": [
+          6.6,
+          7.0,
+          6.2
+        ]
+      },
+      "mechanism": {
+        "gini_mean": 0.167,
+        "forced_total": 4,
+        "mean_winner_confidence": 0.729
+      }
+    },
+    "round_robin": {
+      "step-3.7-flash": {
+        "n": 3,
+        "mean": 5.933,
+        "std": 0.115,
+        "scores": [
+          6.0,
+          6.0,
+          5.8
+        ]
+      },
+      "step-5-preview": {
+        "n": 3,
+        "mean": 7.067,
+        "std": 0.416,
+        "scores": [
+          7.4,
+          6.6,
+          7.2
+        ]
+      },
+      "mechanism": {
+        "gini_mean": 0.0,
+        "forced_total": 0,
+        "mean_winner_confidence": 0.712
+      }
+    },
+    "no_jitter": {
+      "step-3.7-flash": {
+        "n": 3,
+        "mean": 6.2,
+        "std": 0.6,
+        "scores": [
+          6.8,
+          6.2,
+          5.6
+        ]
+      },
+      "step-5-preview": {
+        "n": 3,
+        "mean": 7.267,
+        "std": 0.115,
+        "scores": [
+          7.2,
+          7.4,
+          7.2
+        ]
+      },
+      "mechanism": {
+        "gini_mean": 0.056,
+        "forced_total": 3,
+        "mean_winner_confidence": 0.638
+      }
+    }
+  },
+  "significance": {
+    "full_vs_round_robin__step-3.7-flash": {
+      "full": [
+        6.4,
+        6.4,
+        5.8
+      ],
+      "round_robin": [
+        6.0,
+        6.0,
+        5.8
+      ],
+      "U": 6.5,
+      "p": 0.6,
+      "delta": 0.267
+    },
+    "full_vs_no_jitter__step-3.7-flash": {
+      "full": [
+        6.4,
+        6.4,
+        5.8
+      ],
+      "no_jitter": [
+        6.8,
+        6.2,
+        5.6
+      ],
+      "U": 5.0,
+      "p": 1.0,
+      "delta": 0.0
+    },
+    "full_vs_round_robin__step-5-preview": {
+      "full": [
+        6.6,
+        7.0,
+        6.2
+      ],
+      "round_robin": [
+        7.4,
+        6.6,
+        7.2
+      ],
+      "U": 2.0,
+      "p": 0.4,
+      "delta": -0.467
+    },
+    "full_vs_no_jitter__step-5-preview": {
+      "full": [
+        6.6,
+        7.0,
+        6.2
+      ],
+      "no_jitter": [
+        7.2,
+        7.4,
+        7.2
+      ],
+      "U": 0.0,
+      "p": 0.1,
+      "delta": -0.667
+    }
+  },
+  "n_discussions": 18,
+  "n_judgments": 34
+}
