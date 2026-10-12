@@ -45,16 +45,17 @@ in the factor under study. Second, we ran a $2\times2$ factorial
 experiment crossing driver model with judge model, plus a replication
 of the system's component ablation under multiple judges, including a
 same-machine replication in which only the judge varies. Third, we
-scored all transcripts with two judges from different model families,
-so that judge identity is a controlled factor rather than an
+scored all transcripts with three judges built from three distinct
+models, so that judge identity is a controlled factor rather than an
 assumption.
 
 \paragraph{Contributions.}
 (i)~A protocol-faithful, reproducible testbed for multi-agent
 discussion evaluation (released with all prompts and decision logs).
 (ii)~The first quantification, to our knowledge, of cross-judge
-agreement in this setting: near-zero rank correlation between judges
-from different vendors on discussion quality.
+agreement in this setting: no judge pair reaches substantial rank
+correlation on discussion quality, and level differences reach 1.2
+points on a 10-point scale.
 (iii)~A mechanism decomposition showing that the dominant inter-judge
 effect is a leniency offset whose confidence interval excludes zero,
 while self-preference is not detected---refining the standard mitigation
@@ -63,7 +64,7 @@ advice that a different judge family suffices.
 component-importance conclusions reverse direction under a
 different judge, and that a same-machine replication in which only the
 judge varies reproduces the audited evaluation's component ordering
-under neither judge.
+under no judge--driver combination tested.
 
 All quantitative claims are scoped to the studied setting: one
 discussion framework, one ablation topic, and five repetitions per

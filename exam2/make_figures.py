@@ -9,7 +9,7 @@ OUT = ROOT / "results" / "analysis"
 FIG = ROOT.parent / "paper" / "figures"
 FIG.mkdir(parents=True, exist_ok=True)
 
-stats = json.loads((OUT / "final_stats.json").read_text())
+stats = json.loads((OUT / "final_stats_3judges.json").read_text())
 judges = [json.loads(l) for l in (ROOT / "results/raw/judgments.jsonl").read_text().splitlines()]
 discs = {json.loads(l)["job"]["id"]: json.loads(l)
          for l in (ROOT / "results/raw/discussions.jsonl").read_text().splitlines()}
@@ -100,18 +100,45 @@ bar_chart(FIG / "fig1_condition_scores.svg", groups,
             [(p2["step-5-preview"][c]["ci"][1] - p2["step-5-preview"][c]["ci"][0]) / 2 for c in cond_keys], BLUE),
            ("Judge B (step-3.7-flash)",
             [p2["step-3.7-flash"][c]["mean"] for c in cond_keys],
-            [(p2["step-3.7-flash"][c]["ci"][1] - p2["step-3.7-flash"][c]["ci"][0]) / 2 for c in cond_keys], RED)],
-          "Ablation under two judges (primary driver, 5 reps)",
+            [(p2["step-3.7-flash"][c]["ci"][1] - p2["step-3.7-flash"][c]["ci"][0]) / 2 for c in cond_keys], RED),
+           ("Judge C (step-3.5-flash)",
+            [p2["step-3.5-flash"][c]["mean"] for c in cond_keys],
+            [(p2["step-3.5-flash"][c]["ci"][1] - p2["step-3.5-flash"][c]["ci"][0]) / 2 for c in cond_keys], "#16a34a")],
+          "Ablation under three judges (primary driver, 5 reps)",
           "mean overall score (1-10)")
 
-# ── fig2: per-discussion scatter ──
-ids = sorted(d for d in jmap if d.startswith(("p1-", "p2-", "p3-"))
-             and len(jmap[d]) == 2)
-xs = [jmap[d]["step-5-preview"]["overall"] for d in ids]
-ys = [jmap[d]["step-3.7-flash"]["overall"] for d in ids]
-scatter(FIG / "fig2_trajectories.svg", xs, ys, ids,
-        f"Per-discussion scores, both judges (n={len(ids)})",
-        "Judge A (step-5-preview) overall", "Judge B (step-3.7-flash) overall")
+# ── fig2: three-panel pairwise scatter (three judges) ──
+ids = sorted(d for d in jmap if len(jmap[d]) == 3)
+panels = [("step-5-preview", "step-3.7-flash", BLUE),
+          ("step-5-preview", "step-3.5-flash", RED),
+          ("step-3.7-flash", "step-3.5-flash", "#16a34a")]
+pw, ph, gap = 300, 300, 20
+W = 3 * pw + 2 * gap + 70
+H = ph + 120
+p = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" font-family="sans-serif">',
+     f'<rect width="{W}" height="{H}" fill="white"/>',
+     f'<text x="{W/2}" y="24" text-anchor="middle" font-size="14" font-weight="bold">Per-discussion scores, three judges (n={len(ids)}); dashed = perfect agreement</text>']
+lo, hi = 4.5, 8.5
+for pi, (ma, mb, color) in enumerate(panels):
+    ox = 70 + pi * (pw + gap)
+    for i in range(5):
+        v = lo + (hi - lo) * i / 4
+        x = ox + pw * i / 4
+        y = 40 + ph - ph * i / 4
+        p.append(f'<line x1="{x:.1f}" y1="40" x2="{x:.1f}" y2="{40+ph}" stroke="#eee"/>')
+        p.append(f'<line x1="{ox}" y1="{y:.1f}" x2="{ox+pw}" y2="{y:.1f}" stroke="#eee"/>')
+        p.append(f'<text x="{x:.1f}" y="{40+ph+14}" text-anchor="middle" font-size="9">{v:.1f}</text>')
+        p.append(f'<text x="{ox-6}" y="{y+3:.1f}" text-anchor="end" font-size="9">{v:.1f}</text>')
+    p.append(f'<line x1="{ox}" y1="{40+ph}" x2="{ox+pw}" y2="40" stroke="#999" stroke-dasharray="4 3"/>')
+    xs = [jmap[d][ma]["overall"] for d in ids]
+    ys = [jmap[d][mb]["overall"] for d in ids]
+    for x, y in zip(xs, ys):
+        cx = ox + pw * (x - lo) / (hi - lo)
+        cy = 40 + ph - ph * (y - lo) / (hi - lo)
+        p.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="4" fill="{color}" opacity="0.65"/>')
+    p.append(f'<text x="{ox+pw/2}" y="{40+ph+32}" text-anchor="middle" font-size="10">{ma} (x) vs {mb} (y)</text>')
+p.append("</svg>")
+(FIG / "fig2_trajectories.svg").write_text("\n".join(p))
 
 # ── fig3: same-machine replication ──
 p3 = stats["p3_same_machine"]
@@ -119,9 +146,12 @@ bar_chart(FIG / "fig3_same_machine.svg", groups,
           [("Same-model judge",
             [p3["step-3.7-flash"][c]["mean"] for c in cond_keys],
             [p3["step-3.7-flash"][c]["std"] for c in cond_keys], BLUE),
-           ("Cross-model judge",
+           ("Cross-model judge A",
             [p3["step-5-preview"][c]["mean"] for c in cond_keys],
-            [p3["step-5-preview"][c]["std"] for c in cond_keys], RED)],
+            [p3["step-5-preview"][c]["std"] for c in cond_keys], RED),
+           ("Cross-model judge B",
+            [p3["step-3.5-flash"][c]["mean"] for c in cond_keys],
+            [p3["step-3.5-flash"][c]["std"] for c in cond_keys], "#16a34a")],
           "Same-machine replication (secondary driver, 3 reps)",
           "mean overall score (1-10)")
 

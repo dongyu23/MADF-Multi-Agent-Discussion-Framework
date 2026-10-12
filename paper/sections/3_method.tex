@@ -55,12 +55,15 @@ protocols under audit.
 
 \subsection{Experimental design}
 
-\paragraph{Judges.} Two judges from different model families (both from
-one vendor; a second-vendor judge is being added to the released
-artifact as data becomes available) score every transcript. All judges
+\paragraph{Judges.} Three judges built from three distinct models of
+one vendor score every transcript: a flagship reasoning model, a
+smaller non-reasoning model, and a third flash-class model. All judges
 receive the audited system's own judge prompts verbatim (five
 dimensions, 1--10, anchored rubrics, pre-computed speaking-count
-statistics); only the judge model varies. Temperature 0.1.
+statistics); only the judge model varies. Temperature 0.1. Judges of
+other vendors are a stated extension: the released scoring pipeline
+takes any OpenAI-compatible endpoint, and the artifact will be updated
+as further judges are added.
 
 \paragraph{Discussions.} (i)~\emph{Factorial}: two drivers $\times$ two
 topics $\times$ two repetitions (8 discussions, full system) for the

@@ -9,21 +9,20 @@ audit this evaluation protocol on \sysname{}, a decentralized roundtable
 framework in which each agent bids for the floor with a self-assessed
 confidence score. We re-implemented the framework's protocol verbatim as
 a headless, dependency-free testbed, generated 33 discussions under two
-driver models, and scored every transcript with two judges from
-different model families. Three findings emerge. First, the two judges
-produce near-zero rank agreement on discussion quality (Spearman
-$\rho=-0.05$; per-dimension agreement is weak and negative on insight
-depth), despite both coming from the same vendor---suggesting the
-disagreement is deeper than vendor-specific bias. Second, the dominant
-inter-judge effect is a systematic leniency offset (bootstrap 95\%
-confidence intervals excluding zero) rather than self-preference, which
-we do not detect; this refines the standard advice that using a
-different judge family suffices. Third, component-importance conclusions
-drawn from a single-judge ablation reverse direction under the other
-judge (Cliff's $\delta$ up to $-1.0$), and in a same-machine
-replication where only the judge varies, neither judge ranks the full
-system above all ablations---the audited evaluation's component
-ordering is not reproduced under any judge--driver combination tested.
+driver models, and scored every transcript with three judges built from
+three distinct models. Three findings emerge. First, no judge pair
+reaches substantial rank agreement on discussion quality (Spearman
+$\rho$ from $-0.05$ to $+0.47$; mean absolute differences up to 0.90
+points on a 10-point scale), and agreement on insight depth is near
+zero or negative for every pair. Second, the judges form a leniency
+ladder---one scores 0.60 above the two-judge mean and another 0.60 below
+it, both with bootstrap confidence intervals excluding zero---while
+self-preference is not detected; this refines the standard advice that
+using a different judge family suffices. Third, component-importance
+conclusions drawn from a single-judge ablation vary with the judge
+(Cliff's $\delta$ up to $-1.0$), and in a same-machine replication
+where only the judge varies, no judge--driver combination reproduces
+the audited evaluation's component ordering.
 We conclude that single-judge LLM scores do not support
 component-importance claims about multi-agent discussion systems in
 their current form, and we propose a minimum multi-judge reporting
