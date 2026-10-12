@@ -1,0 +1,31 @@
+% 0_abstract.tex
+Multi-agent discussion systems let several role-conditioned agents
+deliberate on a question, and their evaluation increasingly relies on a
+single large language model (LLM) acting as judge: the judge reads the
+discussion transcript and scores quality dimensions, and the resulting
+scores drive claims about which system components matter. The robustness
+of such claims to the identity of the judge has not been examined. We
+audit this evaluation protocol on \sysname{}, a decentralized roundtable
+framework in which each agent bids for the floor with a self-assessed
+confidence score. We re-implemented the framework's protocol verbatim as
+a headless, dependency-free testbed, generated 33 discussions under two
+driver models, and scored every transcript with two judges from
+different model families. Three findings emerge. First, the two judges
+produce near-zero rank agreement on discussion quality (Spearman
+$\rho=-0.05$; per-dimension agreement is weak and negative on insight
+depth), despite both coming from the same vendor---suggesting the
+disagreement is deeper than vendor-specific bias. Second, the dominant
+inter-judge effect is a systematic leniency offset (bootstrap 95\%
+confidence intervals excluding zero) rather than self-preference, which
+we do not detect; this refines the standard advice that using a
+different judge family suffices. Third, component-importance conclusions
+drawn from a single-judge ablation reverse direction under the other
+judge (Cliff's $\delta$ up to $-1.0$), and in a same-machine
+replication where only the judge varies, neither judge ranks the full
+system above all ablations---the audited evaluation's component
+ordering is not reproduced under any judge--driver combination tested.
+We conclude that single-judge LLM scores do not support
+component-importance claims about multi-agent discussion systems in
+their current form, and we propose a minimum multi-judge reporting
+norm. All code, transcripts, judgments, and an independent jury record
+are released with the paper.

@@ -1,0 +1,34 @@
+% 6_conclusion.tex
+\section{Conclusion}
+\label{sec:conclusion}
+
+We audited the evaluation protocol by which a multi-agent discussion
+system's component importance is established. Re-implementing the
+protocol verbatim and scoring 33 discussions with two judges from
+different model families, we found that cross-judge rank agreement on
+discussion quality is near zero; that the dominant inter-judge effect is a leniency offset
+rather than self-preference, refining the standard family-substitution
+mitigation; and that a single judge's component-importance conclusions
+reverse direction under a different judge, while a same-vendor
+single-judge protocol reproduces the direction of the audited
+evaluation. Mechanism metrics confirm the framework under audit
+operates as designed, locating the instability in the evaluation layer.
+
+The practical upshot is a reporting norm rather than a prohibition:
+multi-judge scoring with agreement reporting, and conclusion-level
+escalation when judges disagree. Limitations are single-framework,
+single-topic (ablation), five repetitions, and authored persona skills;
+the judge-free mechanism metrics and the released artifacts (code,
+transcripts, decision logs, judgments, jury record) make every number
+in this paper checkable. Immediate next steps are a second-vendor judge
+at scale, human-annotation calibration of the judge-free metrics, and a
+multi-topic expansion---the last two are the substance of our
+companion study on speaking-allocation policies, where these metrics
+serve as the evaluation backbone.
+
+\paragraph{Ethics and reproducibility.} The first author developed the
+audited framework; the audit targets the evaluation protocol, and the
+repository contains the verbatim-fidelity mapping, all prompts, all
+transcripts with per-round decision logs, all raw judgments, and the
+analysis scripts. No human subjects were involved; all agents are
+LLM-driven with public-persona skill files.

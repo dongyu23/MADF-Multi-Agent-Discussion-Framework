@@ -1,0 +1,98 @@
+% 3_method.tex
+\section{Method}
+\label{sec:method}
+
+\subsection{The audited system and protocol}
+
+\sysname{} (Multi-Agent Discussion Framework) is a roundtable platform
+in which each participant is an LLM agent conditioned by a persona skill
+file. Each round proceeds as follows: every agent independently emits a
+decision JSON \texttt{\{decision, confidence, reasoning\}}; the
+orchestrator selects the agent with the highest confidence among those
+choosing \texttt{speak}; if all agents wait, one is chosen at random
+(forced speech). Confidence values pass through a deterministic jitter
+that preserves the tenths digit and replaces the hundredths digit with a
+hash-derived value, preventing the model's preference for round numbers.
+A host agent opens and closes the discussion. We audited commit
+\texttt{2f1baa}. The bidding-for-the-floor idea descends from
+importance-driven turn-bidding in spoken dialogue
+systems~\cite{selfridge-heeman-2010-importance}; our audit concerns the
+evaluation protocol, not the mechanism's novelty.
+
+\subsection{Testbed: verbatim protocol reimplementation}
+
+The reference implementation depends on an agent-graph framework, a
+database, and a cache. To make every condition differ only in the factor
+under study, we re-implemented the protocol as a headless testbed in
+pure Python (standard library only). The system prompt (environment
+description, persona framing, three iron rules, thinking and speaking
+instructions, information-boundary rules), the decision schema, the
+jitter algorithm, the arbitration rule, and the host prompts are
+reproduced verbatim from the source. Documented deviations, applied
+identically to all conditions and therefore invisible to comparisons:
+the agent-graph is replaced by direct system-prompt calls (the reference
+implementation already bypasses the graph for decisions); streaming is
+replaced by single calls; persistence is omitted; persona skills are
+authored by us because the reference implementation's skill volumes are
+not in the repository; discussion duration is 120\,s with a floor of
+three rounds. Fidelity was checked line-by-line against the source; the
+full correspondence table is in the released repository.
+
+\subsection{Reasoning-model adaptation}
+
+The protocol was designed for non-reasoning models. Running it
+unmodified on a reasoning model (our primary driver) fails
+\emph{silently}: chain-of-thought consumes the token budget so that the
+decision JSON never appears, and the parser degrades the decision to
+\texttt{wait} (all agents appear silent; every round becomes forced
+speech); speech calls emit meta-narration instead of character speech;
+and judge calls emit no parseable score, defaulting to 5.0. We fixed
+this with per-call token budgets and reasoning-effort control, and parse
+decisions from both output channels. We report this because any
+replication of this protocol family on reasoning models must handle it,
+and because silent degradation is itself a hazard for the evaluation
+protocols under audit.
+
+\subsection{Experimental design}
+
+\paragraph{Judges.} Two judges from different model families (both from
+one vendor; a second-vendor judge is being added to the released
+artifact as data becomes available) score every transcript. All judges
+receive the audited system's own judge prompts verbatim (five
+dimensions, 1--10, anchored rubrics, pre-computed speaking-count
+statistics); only the judge model varies. Temperature 0.1.
+
+\paragraph{Discussions.} (i)~\emph{Factorial}: two drivers $\times$ two
+topics $\times$ two repetitions (8 discussions, full system) for the
+judge-identity analysis. (ii)~\emph{Ablation replication}: the audited
+system's three core conditions---full system, no arbitration
+(round-robin), no jitter---each five repetitions (15 discussions) under
+the primary driver. (iii)~\emph{Same-machine replication}: the same
+three conditions, three repetitions each (9 discussions), under the
+secondary driver, so that a same-vendor single-judge protocol (judge
+model $=$ driver model, the structure of the audited evaluation) can be
+compared against a different-vendor judge on identical transcripts.
+Personas are fixed across conditions (three public figures with
+disjoint expertise); topics are fixed across conditions.
+
+\paragraph{Mechanism metrics.} Judge-free structural metrics computed
+deterministically from transcripts: speaking-count Gini coefficient,
+forced-speech rate, per-round novel-entity rate, and
+question--response adjacency. These describe discussion dynamics
+without invoking any judge.
+
+\subsection{Statistics}
+
+Inter-judge agreement uses Spearman rank correlation (overall and per
+dimension) and mean absolute difference. Condition comparisons report
+Cliff's $\delta$ (non-parametric effect size) and bootstrap 95\%
+confidence intervals (10{,}000 resamples), alongside exact two-sided
+Mann--Whitney $U$ tests. With three-to-five repetitions per condition
+the exact test has limited resolution---with $3\times3$ samples its
+minimum attainable two-sided $p$ is $0.1$---so we treat point
+estimates, effect sizes, and intervals as the primary evidence and
+$p$-values as auxiliary. Self-preference is estimated as the difference
+between same-driver and other-driver scores under a fixed judge.
+An independent model (different family from the authors' toolchain)
+reviewed the evidence-to-claim mapping; its verdict and our responses
+are in Appendix~\ref{app:jury}.

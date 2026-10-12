@@ -1,0 +1,41 @@
+% main.tex — Springer LNNS short paper (target: IntelliSys 2027)
+% Compile on Overleaf with the llncs template (document class llncs.cls,
+% bibliography style splncs04). Figures are SVG/PDF in figures/.
+\documentclass[runningheads]{llncs}
+
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage[numbers]{natbib}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+\input{math_commands}
+
+\title{Judge Identity as a Confounding Factor: An Audit of LLM-as-Judge
+Evaluation for a Multi-Agent Discussion System}
+
+\author{Anonymous Authors}
+
+\institute{Anonymous Submission}
+
+\begin{document}
+
+\maketitle
+
+\input{sections/0_abstract}
+\input{sections/1_introduction}
+\input{sections/2_related_work}
+\input{sections/3_method}
+\input{sections/4_results}
+\input{sections/5_discussion}
+\input{sections/6_conclusion}
+
+\appendix
+\input{sections/A_appendix}
+
+\bibliographystyle{splncs04}
+\bibliography{references}
+
+\end{document}

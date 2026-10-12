@@ -1,0 +1,94 @@
+% 2_related_work.tex
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Reliability of LLM judges.}
+The LLM-as-a-judge paradigm was popularized by MT-Bench, which reported
+human-comparable agreement alongside systematic biases---position,
+verbosity, and self-enhancement~\cite{zheng2023judging}. Subsequent work
+questioned the metrics used to certify judges: inter-rater reliability
+between judge models ignores that judges are stochastic systems
+themselves~\cite{wang2024canyoutrust}, and exact-match agreement
+overstates discriminative power relative to chance-corrected
+measures~\cite{reliability2026}. The largest audits to date evaluate
+dozens of judges across hundreds of thousands of judgments, finding
+that judge rankings shift materially across
+benchmarks~\cite{reliability2026} and that reliability is item-specific
+rather than a model-level property~\cite{allverdicts2026}; agreement
+with human annotators has been catalogued for over fifty
+models~\cite{judgesverdict2025}, and self-preference bias has been
+quantified and mitigated in controlled
+designs~\cite{selfpref2026}. Inter-rater agreement between LLM judges
+has been measured for subjective evaluation tasks such as persona
+assessment. Our setting differs in the artifact under judgment
+(multi-party discussion transcripts) and, critically, in the inferential
+use: these works ask whether judges are reliable; we ask what judge
+identity does to \emph{component-importance conclusions} derived from
+judge scores.
+
+\paragraph{Mitigations: panels and escalation.}
+Two mitigation families are established. Panels of diverse models
+(``juries'') aggregate judgments so that individual biases
+cancel~\cite{verga2024juries}, and escalation schemes escalate
+low-agreement cases to humans with statistical
+guarantees~\cite{jung2024trust}. Both are recommendations for
+evaluation practice; neither has been validated for the
+multi-agent-discussion artifact, and neither measures what happens to
+published component rankings when panels replace single judges. Our
+audit provides exactly that measurement, and our proposed reporting norm
+operationalizes the escalation idea at the level of conclusions rather
+than items.
+
+\paragraph{Evaluation of multi-agent systems.}
+Multi-agent debate improves reasoning and factuality in task-oriented
+settings~\cite{du2023debate}, and frameworks such as MALLM make debate
+components configurable with integrated evaluation
+pipelines~\cite{becker-etal-2025-mallm}. Surveys of agent-as-a-judge
+catalog single-model, multi-agent, and agentic
+evaluators~\cite{agentasjudge2025}. Closest to our object of study,
+\emph{Who Speaks Next?} applies conversation-analytic norms
+(adjacency pairs, self-selection from internal states) to speaker
+control in multi-party LLM dialogue and evaluates the result with LLM
+judges~\cite{whospeaks2024}; voice-agent research learns turn-taking
+decisions with chunk-level ground truth and validates them with
+deterministic metrics plus a single auxiliary judge
+model~\cite{moderatorlm2026}; and asynchronous group communication
+studies when an agent should speak, using human-anchored
+metrics~\cite{eckhaus-etal-2025-time}. None of these works varies the
+\emph{judge} as an experimental factor, and none reports structural
+discussion metrics (speaking inequality, responsiveness) or
+task-outcome anchoring. Our study supplies the missing factor and the
+judge-free metrics.
+
+\paragraph{Reproducibility audits as a genre.}
+Audits of published results are an established publication form:
+reproducibility studies of evaluation
+pipelines~\cite{wang2024canyoutrust}, reporting standards for
+reproducible LLM evaluation, and venue-level replication programs all
+treat the verification of a field's methods as a first-class
+contribution. This paper follows that genre: the audited object is not a
+model's capability but an evaluation \emph{protocol}, and the artifact
+under audit is the audited framework's own published-style evaluation.
+
+\begin{table}[t]
+\centering
+\caption{Positioning against prior work. ``This paper'' supplies the
+judge-identity factor, cross-vendor judging, structural (judge-free)
+metrics, and a same-machine replication in the multi-agent discussion
+setting.}
+\label{tab:positioning}
+\small
+\begin{tabular}{@{}lllll@{}}
+\toprule
+Work & Setting & Judge varied & Judge-free metrics & Component audit \\
+\midrule
+MT-Bench~\cite{zheng2023judging} & chat pref.\ & no & no & no \\
+Juries~\cite{verga2024juries} & generation & panel & no & no \\
+Trust-or-escalate~\cite{jung2024trust} & general & escalation & no & no \\
+Large audits~\cite{reliability2026,allverdicts2026} & benchmarks & yes & no & no \\
+Who Speaks Next?~\cite{whospeaks2024} & game dialogue & no & no & no \\
+MALLM~\cite{becker-etal-2025-mallm} & debate & no & partial & partial \\
+This paper & discussion & yes (3, 2 vendors) & yes & yes \\
+\bottomrule
+\end{tabular}
+\end{table}

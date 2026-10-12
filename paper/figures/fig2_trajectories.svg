@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="460" font-family="sans-serif">
+<rect width="560" height="460" fill="white"/>
+<text x="280.0" y="26" text-anchor="middle" font-size="15" font-weight="bold">Per-discussion scores, both judges (n=32)</text>
+<line x1="70.0" y1="50" x2="70.0" y2="390" stroke="#ddd"/>
+<line x1="70" y1="390.0" x2="540" y2="390.0" stroke="#ddd"/>
+<text x="70.0" y="406" text-anchor="middle" font-size="10">4.5</text>
+<text x="62" y="394.0" text-anchor="end" font-size="10">4.5</text>
+<line x1="187.5" y1="50" x2="187.5" y2="390" stroke="#ddd"/>
+<line x1="70" y1="305.0" x2="540" y2="305.0" stroke="#ddd"/>
+<text x="187.5" y="406" text-anchor="middle" font-size="10">5.5</text>
+<text x="62" y="309.0" text-anchor="end" font-size="10">5.5</text>
+<line x1="305.0" y1="50" x2="305.0" y2="390" stroke="#ddd"/>
+<line x1="70" y1="220.0" x2="540" y2="220.0" stroke="#ddd"/>
+<text x="305.0" y="406" text-anchor="middle" font-size="10">6.5</text>
+<text x="62" y="224.0" text-anchor="end" font-size="10">6.5</text>
+<line x1="422.5" y1="50" x2="422.5" y2="390" stroke="#ddd"/>
+<line x1="70" y1="135.0" x2="540" y2="135.0" stroke="#ddd"/>
+<text x="422.5" y="406" text-anchor="middle" font-size="10">7.5</text>
+<text x="62" y="139.0" text-anchor="end" font-size="10">7.5</text>
+<line x1="540.0" y1="50" x2="540.0" y2="390" stroke="#ddd"/>
+<line x1="70" y1="50.0" x2="540" y2="50.0" stroke="#ddd"/>
+<text x="540.0" y="406" text-anchor="middle" font-size="10">8.5</text>
+<text x="62" y="54.0" text-anchor="end" font-size="10">8.5</text>
+<line x1="70" y1="390" x2="540" y2="50" stroke="#999" stroke-dasharray="5 4"/>
+<text x="450" y="68" font-size="10" fill="#666">agreement line</text>
+<circle cx="410.8" cy="211.5" r="5" fill="#2563eb" opacity="0.7"/>
+<circle cx="363.8" cy="262.5" r="5" fill="#2563eb" opacity="0.7"/>
+<circle cx="293.2" cy="194.5" r="5" fill="#2563eb" opacity="0.7"/>
+<circle cx="316.8" cy="228.5" r="5" fill="#2563eb" opacity="0.7"/>
+<circle cx="363.8" cy="211.5" r="5" fill="#2563eb" opacity="0.7"/>
+<circle cx="316.8" cy="177.5" r="5" fill="#2563eb" opacity="0.7"/>
+<circle cx="457.8" cy="228.5" r="5" fill="#2563eb" opacity="0.7"/>
+<circle cx="269.8" cy="245.5" r="5" fill="#2563eb" opacity="0.7"/>
+<circle cx="316.8" cy="228.5" r="5" fill="#2563eb" opacity="0.7"/>
+<circle cx="363.8" cy="228.5" r="5" fill="#2563eb" opacity="0.7"/>
+<circle cx="269.8" cy="279.5" r="5" fill="#2563eb" opacity="0.7"/>
+<circle cx="387.2" cy="245.5" r="5" fill="#2563eb" opacity="0.7"/>
+<circle cx="222.7" cy="228.5" r="5" fill="#2563eb" opacity="0.7"/>
+<circle cx="387.2" cy="194.5" r="5" fill="#2563eb" opacity="0.7"/>
+<circle cx="410.8" cy="245.5" r="5" fill="#2563eb" opacity="0.7"/>
+<circle cx="387.2" cy="296.5" r="5" fill="#2563eb" opacity="0.7"/>
+<circle cx="316.8" cy="347.5" r="5" fill="#2563eb" opacity="0.7"/>
+<circle cx="387.2" cy="211.5" r="5" fill="#2563eb" opacity="0.7"/>
+<circle cx="410.8" cy="262.5" r="5" fill="#2563eb" opacity="0.7"/>
+<circle cx="316.8" cy="262.5" r="5" fill="#2563eb" opacity="0.7"/>
+<circle cx="387.2" cy="279.5" r="5" fill="#2563eb" opacity="0.7"/>
+<circle cx="410.8" cy="245.5" r="5" fill="#2563eb" opacity="0.7"/>
+<circle cx="316.8" cy="245.5" r="5" fill="#2563eb" opacity="0.7"/>
+<circle cx="246.2" cy="296.5" r="5" fill="#2563eb" opacity="0.7"/>
+<circle cx="269.8" cy="211.5" r="5" fill="#2563eb" opacity="0.7"/>
+<circle cx="269.8" cy="211.5" r="5" fill="#2563eb" opacity="0.7"/>
+<circle cx="105.3" cy="245.5" r="5" fill="#2563eb" opacity="0.7"/>
+<circle cx="269.8" cy="143.5" r="5" fill="#2563eb" opacity="0.7"/>
+<circle cx="340.3" cy="160.5" r="5" fill="#2563eb" opacity="0.7"/>
+<circle cx="316.8" cy="228.5" r="5" fill="#2563eb" opacity="0.7"/>
+<circle cx="316.8" cy="211.5" r="5" fill="#2563eb" opacity="0.7"/>
+<circle cx="387.3" cy="228.5" r="5" fill="#2563eb" opacity="0.7"/>
+<text x="305.0" y="434" text-anchor="middle" font-size="11">Judge A (step-5-preview) overall</text>
+<text x="22" y="220.0" transform="rotate(-90 22 220.0)" text-anchor="middle" font-size="11">Judge B (step-3.7-flash) overall</text>
+</svg>

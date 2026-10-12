@@ -1,0 +1,85 @@
+% 1_introduction.tex
+\section{Introduction}
+
+Multi-agent systems built from large language models (LLMs) are
+increasingly evaluated by having another LLM read the system's output
+and score it. In multi-agent \emph{discussion} systems---several
+role-conditioned agents deliberating on an open question---the scored
+artifact is the discussion transcript itself, and the scores routinely
+carry scientific weight: a recent open-source roundtable framework
+reports that its decentralized speaking mechanism outperforms
+single-model role-play (6.20 vs.\ 3.53 on a five-dimension judge scale)
+and ranks five system components by their measured contribution
+(host summary $-1.20$, confidence arbitration $-0.92$, jitter $-0.80$,
+iron rules $-0.53$, opening $-0.40$)~\cite{whospeaks2024}. Conclusions
+of this form---``this component matters more than that one''---now
+appear across the multi-agent literature.
+
+All such conclusions inherit an unexamined dependency: the identity of
+the judge model. LLM judges are known to be imperfect measuring
+instruments in general~\cite{zheng2023judging,wang2024canyoutrust},
+and large-scale audits have shown that judge rankings move across
+benchmarks and that reliability is item-specific rather than
+model-level~\cite{reliability2026,allverdicts2026}. What has not been
+measured is the consequence for the specific inferential move that
+multi-agent papers make: a single judge scores transcripts of system
+variants, and the resulting differences are read as properties of the
+\emph{system}. If a different judge reverses the ordering of the
+variants, the component ranking is a property of the judge, not of the
+system.
+
+This paper is an audit of that inferential move, conducted on a system
+whose source, protocol, and original evaluation are fully available to
+us. We ask three research questions. \textbf{RQ1:} How consistent are
+different judges' quality assessments of the same multi-agent
+discussions? \textbf{RQ2:} Through what mechanism does judge identity
+act---a preference for outputs of the judge's own family, or a general
+leniency offset? \textbf{RQ3:} Do the component-importance conclusions
+of a single-judge evaluation replicate when the judge changes?
+
+Our approach has three parts. First, we re-implemented the audited
+system's speaking protocol verbatim (decision schema, confidence
+arbitration, deterministic jitter, host prompts) as a headless testbed
+with no third-party dependencies, so that every condition differs only
+in the factor under study. Second, we ran a $2\times2$ factorial
+experiment crossing driver model with judge model, plus a replication
+of the system's component ablation under multiple judges, including a
+same-machine replication in which only the judge varies. Third, we
+scored all transcripts with two judges from different model families,
+so that judge identity is a controlled factor rather than an
+assumption.
+
+\paragraph{Contributions.}
+(i)~A protocol-faithful, reproducible testbed for multi-agent
+discussion evaluation (released with all prompts and decision logs).
+(ii)~The first quantification, to our knowledge, of cross-judge
+agreement in this setting: near-zero rank correlation between judges
+from different vendors on discussion quality.
+(iii)~A mechanism decomposition showing that the dominant inter-judge
+effect is a leniency offset whose confidence interval excludes zero,
+while self-preference is not detected---refining the standard mitigation
+advice that a different judge family suffices.
+(iv)~A replication audit showing that a single judge's
+component-importance conclusions reverse direction under a
+different judge, and that a same-machine replication in which only the
+judge varies reproduces the audited evaluation's component ordering
+under neither judge.
+
+All quantitative claims are scoped to the studied setting: one
+discussion framework, one ablation topic, and five repetitions per
+ablation condition; we state these boundaries where they apply.
+
+\paragraph{Scope and posture.} The first author is the developer of the
+audited framework, and the audited evaluation is the first author's own
+prior work. We treat this as a case study of an evaluation protocol,
+not as evidence about the framework's quality: mechanism metrics
+(\S\ref{sec:mechanism}) indicate the framework operates as designed, and
+nothing here claims otherwise.
+
+The rest of the paper is organized as follows. \S\ref{sec:related}
+positions the work against the LLM-judge reliability literature,
+multi-agent evaluation, and reproducibility audits. \S\ref{sec:method}
+describes the audited protocol, the testbed, and the experimental
+design. \S\ref{sec:results} reports the three findings.
+\S\ref{sec:discussion} states the minimum reporting norm we propose,
+and \S\ref{sec:conclusion} concludes.

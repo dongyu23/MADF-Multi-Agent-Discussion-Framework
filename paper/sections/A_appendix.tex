@@ -1,0 +1,50 @@
+% A_appendix.tex
+\appendix
+\section{Independent jury record}
+\label{app:jury}
+
+Because the authors audited their own system's evaluation, an
+independent model (different family from the authors' toolchain)
+reviewed the evidence-to-claim mapping before this manuscript was
+finalized. The jury received the full results, the candidate claims,
+the known caveats, and instructions to avoid inflating claims beyond
+the data. Its verdict was \emph{partial} support with \emph{medium}
+confidence. Points the jury raised and how this manuscript responds:
+
+\begin{itemize}
+\item \emph{``Non-significance under small $n$ is a design property,
+not a finding.''} Accepted: the manuscript's primary evidence for RQ3
+is the direction reversal with maximum effect size and disjoint
+bootstrap intervals; exact $p$-values are reported as auxiliary.
+\item \emph{``Self-preference non-detection is a power statement, not
+proof of absence.''} Accepted: claims are stated as ``not detected''
+with intervals, never as absence.
+\item \emph{``Driver capability is partly confounded with judge identity
+in the factorial.''} Accepted: the same-machine replication
+(\S\ref{sec:results}) holds transcripts fixed and varies only the
+judge, and the limitation is stated in \S\ref{sec:discussion}.
+\item \emph{``The setting is narrow.''} Accepted: the posture is a
+protocol audit case study; generality is claimed for the inferential
+move (single-judge component ranking), not for the framework.
+\end{itemize}
+
+The full jury transcript, the deterministic evidence pre-check, and
+the claim-by-claim responses are released with the repository.
+
+\section{Artifact contents}
+
+\begin{itemize}
+\item \texttt{exam2/madf\_harness.py} --- headless testbed (protocol
+reimplementation, verbatim prompts and algorithms).
+\item \texttt{exam2/run\_experiment.py}, \texttt{score\_third\_judge.py}
+--- experiment and multi-judge scoring runners.
+\item \texttt{exam2/results/raw/discussions.jsonl} --- every discussion
+with full transcript and per-round decision logs (decision,
+confidence, reasoning, jittered confidence, speaker, forced flag).
+\item \texttt{exam2/results/raw/judgments.jsonl} --- every raw judge
+output per dimension.
+\item \texttt{exam2/analyze.py}, \texttt{stats\_addendum.py} ---
+agreement, offset, effect-size, and bootstrap analyses.
+\item \texttt{exam2/CLAMS\_FROM\_RESULTS.md} --- jury verdict and
+responses; \texttt{.aris/traces/} --- jury transcripts.
+\end{itemize}

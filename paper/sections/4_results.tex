@@ -1,0 +1,204 @@
+% 4_results.tex
+\section{Results}
+\label{sec:results}
+
+\subsection{Inter-judge agreement is near zero (RQ1)}
+
+Table~\ref{tab:agreement} reports pairwise agreement between the two
+judges on the 32 experimental discussions (overall score). Rank
+correlation is $\rho=-0.05$ with a mean absolute difference of 0.72
+points on a 10-point scale. Per dimension, agreement is weak
+(relevance $\rho=0.05$) and \emph{negative} on insight depth
+($\rho=-0.23$): the two judges systematically disagree about which
+discussions are deep. Both judges come from the same vendor but
+different model families, so this is a lower bound on the disagreement
+between genuinely independent judges; a second-vendor judge is being
+added to the released artifact.
+
+\begin{table}[t]
+\centering
+\caption{Pairwise inter-judge agreement (overall score, 32
+discussions; per-dimension $\rho$ in parentheses where notable).}
+\label{tab:agreement}
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Judge pair & $n$ & Spearman $\rho$ & Mean $\lvert\Delta\rvert$ \\
+\midrule
+step-5-preview vs.\ step-3.7-flash & 32 & $-0.05$ & 0.72 \\
+\bottomrule
+\end{tabular}
+
+\smallskip
+\noindent Per dimension: coherence $0.50$, engagement $0.41$,
+consistency $0.32$, relevance $0.05$, insight depth $-0.23$.
+\end{table}
+
+\subsection{Leniency offset, not self-preference (RQ2)}
+
+Judges differ systematically in level: one judge scores higher than the
+other on 69\% of discussions (mean offset $+0.39$, bootstrap 95\%
+CI $[+0.13,+0.65]$, excluding zero; the mirror offset for the other
+judge excludes zero symmetrically). Crucially, the offset persists in
+cells where the judge did \emph{not} produce the discussion, so it is a
+property of the judge, not a preference for its own family. Direct
+self-preference estimates are small and statistically
+indistinguishable from zero: $+0.05$ (CI $[-0.70,+0.70]$) and $-0.10$
+(CI $[-0.40,+0.40]$). This decomposes the two mechanisms that the
+standard mitigation (``use a different family'') conflates: changing
+family removes self-preference, which was not the operative effect
+here, while leaving the leniency offset untouched.
+
+\begin{table}[t]
+\centering
+\caption{Leniency offset per judge (score minus the mean of the other
+judge on the same discussion) and self-preference delta (same-driver
+minus other-driver discussions), with bootstrap 95\% intervals
+(10{,}000 resamples).}
+\label{tab:leniency}
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Judge & Leniency offset & 95\% CI & Self-pref.\ $\Delta$ (CI) \\
+\midrule
+step-5-preview & $+0.39$ & $[+0.13,+0.65]$ & $+0.05$ ($[-0.70,+0.70]$) \\
+step-3.7-flash & $-0.39$ & $[-0.65,-0.13]$ & $-0.10$ ($[-0.40,+0.40]$) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Single-judge component conclusions do not replicate (RQ3)}
+
+Table~\ref{tab:ablation} reports the ablation replication at five
+repetitions per condition under the primary driver. Under the
+higher-level judge, removing arbitration or jitter \emph{raises} the
+score (Cliff's $\delta=-0.48$ and $-0.64$): the full system is ranked
+\emph{below} both ablations. Under the other judge, point estimates run
+in the opposite direction, consistent with the audited evaluation's
+ordering but with small effect sizes ($\delta=+0.56$, $+0.08$). The
+audited evaluation's headline claim---that arbitration and jitter
+contribute $-0.92$ and $-0.80$---is reproduced by \emph{neither}
+judge at anything like that magnitude.
+
+\begin{table}[t]
+\centering
+\caption{Ablation replication, five repetitions per condition, primary
+driver (mean overall $\pm$ SD). $\delta$ is Cliff's delta for full
+vs.\ ablated condition under the stated judge.}
+\label{tab:ablation}
+\small
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+& \multicolumn{2}{c}{Judge A} & \multicolumn{2}{c}{Judge B} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+Condition & Score & $\delta$ & Score & $\delta$ \\
+\midrule
+Full system & $6.56\pm0.57$ & --- & $6.24\pm0.26$ & --- \\
+No arbitration (round-robin) & $7.04\pm0.41$ & $-0.48$ & $6.04\pm0.17$ & $+0.56$ \\
+No jitter & $7.12\pm0.30$ & $-0.64$ & $6.04\pm0.74$ & $+0.08$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Same-machine replication: only the judge varies}
+
+Table~\ref{tab:samemachine} holds transcripts fixed and varies only the
+judge, on the secondary driver (three repetitions per condition). A
+same-model judge---the structure of the audited single-judge
+protocol---ranks the full system \emph{below} the no-jitter ablation
+($\delta=-0.56$); the cross-model judge ranks it below the
+round-robin ablation at the maximum effect size ($\delta=-1.00$: every
+round-robin discussion outscores every full-system discussion). In
+neither configuration does the full system lead. Combined with
+Table~\ref{tab:ablation}, no judge--driver combination reproduces the
+audited evaluation's component ordering: the ranking is a property of
+the judge, not of the system.
+
+\begin{table}[t]
+\centering
+\caption{Same-machine replication (secondary driver, three repetitions
+per condition, mean overall $\pm$ SD). Identical transcripts; only the
+judge differs.}
+\label{tab:samemachine}
+\small
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+& \multicolumn{2}{c}{Same-model judge} & \multicolumn{2}{c}{Cross-model judge} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+Condition & Score & $\delta$ & Score & $\delta$ \\
+\midrule
+Full system & $6.27\pm0.58$ & --- & $6.13\pm0.12$ & --- \\
+No arbitration (round-robin) & $6.47\pm0.12$ & $+0.11$ & $6.80\pm0.35$ & $-1.00$ \\
+No jitter & $6.93\pm0.64$ & $-0.56$ & $5.93\pm1.03$ & $-0.11$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Mechanism metrics: the framework operates as designed}
+\label{sec:mechanism}
+
+Judge-free metrics confirm the ablations manipulate what they claim.
+Under the primary driver, the full system produces unequal speaking
+counts (Gini $=0.10$), round-robin produces a fixed rotation (Gini
+$=0.00$ at three rounds; $0.13$ at five), and removing jitter collapses
+most of the asymmetry (Gini $=0.03$), confirming jitter as the
+operative source of speaking inequality. Forced speech never occurs
+under round-robin (by construction) and occurs under both other
+conditions. The framework's speaking mechanism behaves as documented;
+the instability documented above resides in the evaluation layer, not
+the framework.
+
+\begin{table}[t]
+\centering
+\caption{Mechanism metrics per ablation condition (deterministic, no
+judge involved). Gini: speaking-count inequality; forced: rounds in
+which all agents waited and a speaker was forced.}
+\label{tab:mechanism}
+\small
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+& \multicolumn{2}{c}{Primary driver} & \multicolumn{2}{c}{Secondary driver} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+Condition & Gini & Forced & Gini & Forced \\
+\midrule
+Full system & 0.10 & 5/25 & 0.23 & 1/9 \\
+No arbitration & 0.00--0.13 & 0/25 & 0.13 & 0/9 \\
+No jitter & 0.03 & 5/25 & 0.19 & 1/9 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/fig1_condition_scores}
+\caption{Per-condition scores under both judges with bootstrap
+intervals (primary driver, five repetitions). The ordering of
+conditions inverts between judges.}
+\label{fig:flip}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/fig2_trajectories}
+\caption{Per-discussion overall scores under both judges (32
+discussions). Lines cross with no systematic pattern.}
+\label{fig:trajectories}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/fig3_same_machine}
+\caption{Same-machine replication: identical transcripts scored by two
+judges (secondary driver). The full system does not lead under either
+judge.}
+\label{fig:samemachine}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/fig4_mechanism}
+\caption{Mechanism metrics per condition (speaking Gini and forced
+rounds), both drivers. Jitter removal collapses speaking asymmetry
+under the primary driver.}
+\label{fig:mechanism}
+\end{figure}
