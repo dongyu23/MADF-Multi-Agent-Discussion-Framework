@@ -18,13 +18,11 @@ rather than a model-level property~\cite{allverdicts2026}; agreement
 with human annotators has been catalogued for over fifty
 models~\cite{judgesverdict2025}, and self-preference bias has been
 quantified and mitigated in controlled
-designs~\cite{selfpref2026}. Inter-rater agreement between LLM judges
-has been measured for subjective evaluation tasks such as persona
-assessment. Our setting differs in the artifact under judgment
-(multi-party discussion transcripts) and, critically, in the inferential
-use: these works ask whether judges are reliable; we ask what judge
-identity does to \emph{component-importance conclusions} derived from
-judge scores.
+designs~\cite{selfpref2026}. Our setting differs in the artifact under
+judgment (multi-party discussion transcripts) and, critically, in the
+inferential use: these works ask whether judges are reliable; we ask
+what judge identity does to \emph{component-importance conclusions}
+derived from judge scores.
 
 \paragraph{Mitigations: panels and escalation.}
 Two mitigation families are established. Panels of diverse models
@@ -78,6 +76,7 @@ metrics, and a same-machine replication in the multi-agent discussion
 setting.}
 \label{tab:positioning}
 \small
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{@{}lllll@{}}
 \toprule
 Work & Setting & Judge varied & Judge-free metrics & Component audit \\
@@ -90,5 +89,5 @@ Who Speaks Next?~\cite{whospeaks2024} & game dialogue & no & no & no \\
 MALLM~\cite{becker-etal-2025-mallm} & debate & no & partial & partial \\
 This paper & discussion & yes (3, 2 vendors) & yes & yes \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \end{table}

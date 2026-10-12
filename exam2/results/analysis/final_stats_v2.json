@@ -1,0 +1,709 @@
+{
+  "n_discussions": 32,
+  "excluded_discussions": [
+    "warmup-1"
+  ],
+  "judges": [
+    "step-5-preview",
+    "step-3.7-flash",
+    "deepseek-v4.1-flash"
+  ],
+  "released_extra_judges": [
+    "step-3.5-flash"
+  ],
+  "judgments_per_model": {
+    "step-5-preview": 32,
+    "step-3.7-flash": 32,
+    "deepseek-v4.1-flash": 32,
+    "step-3.5-flash": 32
+  },
+  "data_quality": {
+    "step-5-preview": {
+      "n": 32,
+      "mean_overall": 6.725,
+      "parse_error_dims": 28,
+      "default_5_dims": 24,
+      "total_dims": 160
+    },
+    "step-3.7-flash": {
+      "n": 32,
+      "mean_overall": 6.331,
+      "parse_error_dims": 27,
+      "default_5_dims": 22,
+      "total_dims": 160
+    },
+    "deepseek-v4.1-flash": {
+      "n": 32,
+      "mean_overall": 5.906,
+      "parse_error_dims": 30,
+      "default_5_dims": 26,
+      "total_dims": 160
+    },
+    "step-3.5-flash": {
+      "n": 32,
+      "mean_overall": 5.925,
+      "parse_error_dims": 78,
+      "default_5_dims": 59,
+      "total_dims": 160
+    }
+  },
+  "agreement": {
+    "step-5-preview|step-3.7-flash": {
+      "n": 32,
+      "rho": -0.049,
+      "mad": 0.719,
+      "per_dim": {
+        "coherence": 0.504,
+        "depth": -0.226,
+        "consistency": 0.317,
+        "engagement": 0.405,
+        "relevance": 0.054
+      },
+      "cross_vendor": false
+    },
+    "step-5-preview|deepseek-v4.1-flash": {
+      "n": 32,
+      "rho": 0.284,
+      "mad": 0.869,
+      "per_dim": {
+        "coherence": 0.831,
+        "depth": -0.101,
+        "consistency": 0.215,
+        "engagement": 0.62,
+        "relevance": 0.314
+      },
+      "cross_vendor": true
+    },
+    "step-3.7-flash|deepseek-v4.1-flash": {
+      "n": 32,
+      "rho": -0.103,
+      "mad": 0.663,
+      "per_dim": {
+        "coherence": 0.421,
+        "depth": 0.327,
+        "consistency": 0.169,
+        "engagement": 0.163,
+        "relevance": 0.111
+      },
+      "cross_vendor": true
+    }
+  },
+  "agreement_released_extra": {
+    "step-3.5-flash|step-5-preview": {
+      "n": 32,
+      "rho": 0.207,
+      "mad": 0.9
+    },
+    "step-3.5-flash|step-3.7-flash": {
+      "n": 32,
+      "rho": 0.472,
+      "mad": 0.544
+    },
+    "step-3.5-flash|deepseek-v4.1-flash": {
+      "n": 32,
+      "rho": 0.261,
+      "mad": 0.569
+    }
+  },
+  "leniency": {
+    "step-5-preview": {
+      "n": 32,
+      "mean": 0.606,
+      "ci": [
+        0.403,
+        0.8
+      ],
+      "pos_share": 0.781
+    },
+    "step-3.7-flash": {
+      "n": 32,
+      "mean": 0.016,
+      "ci": [
+        -0.225,
+        0.262
+      ],
+      "pos_share": 0.406
+    },
+    "deepseek-v4.1-flash": {
+      "n": 32,
+      "mean": -0.622,
+      "ci": [
+        -0.831,
+        -0.422
+      ],
+      "pos_share": 0.125
+    }
+  },
+  "leniency_non_self": {
+    "step-5-preview": {
+      "n": 13,
+      "mean": 0.377,
+      "ci": [
+        0.077,
+        0.677
+      ]
+    },
+    "step-3.7-flash": {
+      "n": 19,
+      "mean": -0.295,
+      "ci": [
+        -0.547,
+        -0.026
+      ]
+    },
+    "deepseek-v4.1-flash": {
+      "n": 32,
+      "mean": -0.622,
+      "ci": [
+        -0.831,
+        -0.422
+      ]
+    }
+  },
+  "self_preference": {
+    "step-5-preview": {
+      "self": 6.9,
+      "other": 6.85,
+      "delta": 0.05,
+      "ci": [
+        -0.6,
+        0.75
+      ],
+      "perm_p": 1.0,
+      "n_self": 4,
+      "n_other": 4
+    },
+    "step-3.7-flash": {
+      "self": 6.45,
+      "other": 6.55,
+      "delta": -0.1,
+      "ci": [
+        -0.5,
+        0.3
+      ],
+      "perm_p": 0.8286,
+      "n_self": 4,
+      "n_other": 4
+    }
+  },
+  "p2_ablation_5rep": {
+    "step-5-preview": {
+      "full": {
+        "n": 5,
+        "mean": 6.56,
+        "std": 0.573,
+        "ci": [
+          6.12,
+          7.0
+        ],
+        "scores": [
+          6.6,
+          7.0,
+          6.2,
+          7.2,
+          5.8
+        ]
+      },
+      "round_robin": {
+        "n": 5,
+        "mean": 7.04,
+        "std": 0.41,
+        "ci": [
+          6.72,
+          7.36
+        ],
+        "scores": [
+          7.4,
+          6.6,
+          7.2,
+          7.4,
+          6.6
+        ]
+      },
+      "no_jitter": {
+        "n": 5,
+        "mean": 7.12,
+        "std": 0.303,
+        "ci": [
+          6.84,
+          7.32
+        ],
+        "scores": [
+          7.2,
+          7.4,
+          7.2,
+          6.6,
+          7.2
+        ]
+      },
+      "full_vs_round_robin": {
+        "delta": -0.48,
+        "diff_ci": [
+          -1.04,
+          0.08
+        ],
+        "cliffs": -0.48,
+        "cliffs_ci": [
+          -1.0,
+          0.28
+        ],
+        "perm_p": 0.1984,
+        "perm_p_holm": 0.9921
+      },
+      "full_vs_no_jitter": {
+        "delta": -0.56,
+        "diff_ci": [
+          -1.08,
+          -0.04
+        ],
+        "cliffs": -0.64,
+        "cliffs_ci": [
+          -1.0,
+          -0.04
+        ],
+        "perm_p": 0.1111,
+        "perm_p_holm": 0.6667
+      }
+    },
+    "step-3.7-flash": {
+      "full": {
+        "n": 5,
+        "mean": 6.24,
+        "std": 0.261,
+        "ci": [
+          6.0,
+          6.4
+        ],
+        "scores": [
+          6.4,
+          6.4,
+          5.8,
+          6.2,
+          6.4
+        ]
+      },
+      "round_robin": {
+        "n": 5,
+        "mean": 6.04,
+        "std": 0.167,
+        "ci": [
+          5.92,
+          6.16
+        ],
+        "scores": [
+          6.0,
+          6.0,
+          5.8,
+          6.2,
+          6.2
+        ]
+      },
+      "no_jitter": {
+        "n": 5,
+        "mean": 6.04,
+        "std": 0.74,
+        "ci": [
+          5.48,
+          6.6
+        ],
+        "scores": [
+          6.8,
+          6.2,
+          5.6,
+          5.0,
+          6.6
+        ]
+      },
+      "full_vs_round_robin": {
+        "delta": 0.2,
+        "diff_ci": [
+          -0.04,
+          0.44
+        ],
+        "cliffs": 0.56,
+        "cliffs_ci": [
+          -0.2,
+          1.0
+        ],
+        "perm_p": 0.2937,
+        "perm_p_holm": 0.9921
+      },
+      "full_vs_no_jitter": {
+        "delta": 0.2,
+        "diff_ci": [
+          -0.4,
+          0.84
+        ],
+        "cliffs": 0.08,
+        "cliffs_ci": [
+          -0.72,
+          0.92
+        ],
+        "perm_p": 0.6825,
+        "perm_p_holm": 0.9921
+      }
+    },
+    "deepseek-v4.1-flash": {
+      "full": {
+        "n": 5,
+        "mean": 6.36,
+        "std": 0.434,
+        "ci": [
+          6.04,
+          6.68
+        ],
+        "scores": [
+          6.8,
+          5.8,
+          6.2,
+          6.8,
+          6.2
+        ]
+      },
+      "round_robin": {
+        "n": 5,
+        "mean": 6.16,
+        "std": 0.261,
+        "ci": [
+          5.96,
+          6.36
+        ],
+        "scores": [
+          6.2,
+          5.8,
+          6.4,
+          6.0,
+          6.4
+        ]
+      },
+      "no_jitter": {
+        "n": 5,
+        "mean": 5.88,
+        "std": 0.593,
+        "ci": [
+          5.4,
+          6.28
+        ],
+        "scores": [
+          5.0,
+          5.8,
+          6.2,
+          5.8,
+          6.6
+        ]
+      },
+      "full_vs_round_robin": {
+        "delta": 0.2,
+        "diff_ci": [
+          -0.2,
+          0.6
+        ],
+        "cliffs": 0.32,
+        "cliffs_ci": [
+          -0.44,
+          0.92
+        ],
+        "perm_p": 0.4762,
+        "perm_p_holm": 0.9921
+      },
+      "full_vs_no_jitter": {
+        "delta": 0.48,
+        "diff_ci": [
+          -0.08,
+          1.08
+        ],
+        "cliffs": 0.6,
+        "cliffs_ci": [
+          -0.04,
+          1.0
+        ],
+        "perm_p": 0.2143,
+        "perm_p_holm": 0.9921
+      }
+    }
+  },
+  "p2_ablation_5rep_holm": {
+    "step-5-preview|full_vs_round_robin": 0.9921,
+    "step-5-preview|full_vs_no_jitter": 0.6667,
+    "step-3.7-flash|full_vs_round_robin": 0.9921,
+    "step-3.7-flash|full_vs_no_jitter": 0.9921,
+    "deepseek-v4.1-flash|full_vs_round_robin": 0.9921,
+    "deepseek-v4.1-flash|full_vs_no_jitter": 0.9921
+  },
+  "p3_same_machine": {
+    "step-5-preview": {
+      "full": {
+        "n": 3,
+        "mean": 6.133,
+        "std": 0.115,
+        "ci": [
+          6.0,
+          6.2
+        ],
+        "scores": [
+          6.0,
+          6.2,
+          6.2
+        ]
+      },
+      "round_robin": {
+        "n": 3,
+        "mean": 6.8,
+        "std": 0.346,
+        "ci": [
+          6.6,
+          7.2
+        ],
+        "scores": [
+          6.6,
+          6.6,
+          7.2
+        ]
+      },
+      "no_jitter": {
+        "n": 3,
+        "mean": 5.933,
+        "std": 1.026,
+        "ci": [
+          4.8,
+          6.8
+        ],
+        "scores": [
+          4.8,
+          6.2,
+          6.8
+        ]
+      },
+      "full_vs_round_robin": {
+        "delta": -0.667,
+        "diff_ci": [
+          -1.067,
+          -0.4
+        ],
+        "cliffs": -1.0,
+        "cliffs_ci": [
+          -1.0,
+          -1.0
+        ],
+        "perm_p": 0.1,
+        "perm_p_holm": 0.6
+      },
+      "full_vs_no_jitter": {
+        "delta": 0.2,
+        "diff_ci": [
+          -0.6,
+          1.333
+        ],
+        "cliffs": -0.111,
+        "cliffs_ci": [
+          -1.0,
+          1.0
+        ],
+        "perm_p": 1.0,
+        "perm_p_holm": 1.0
+      }
+    },
+    "step-3.7-flash": {
+      "full": {
+        "n": 3,
+        "mean": 6.267,
+        "std": 0.577,
+        "ci": [
+          5.6,
+          6.6
+        ],
+        "scores": [
+          5.6,
+          6.6,
+          6.6
+        ]
+      },
+      "round_robin": {
+        "n": 3,
+        "mean": 6.467,
+        "std": 0.115,
+        "ci": [
+          6.4,
+          6.6
+        ],
+        "scores": [
+          6.4,
+          6.6,
+          6.4
+        ]
+      },
+      "no_jitter": {
+        "n": 3,
+        "mean": 6.933,
+        "std": 0.643,
+        "ci": [
+          6.2,
+          7.4
+        ],
+        "scores": [
+          6.2,
+          7.4,
+          7.2
+        ]
+      },
+      "full_vs_round_robin": {
+        "delta": -0.2,
+        "diff_ci": [
+          -0.867,
+          0.2
+        ],
+        "cliffs": 0.111,
+        "cliffs_ci": [
+          -1.0,
+          1.0
+        ],
+        "perm_p": 1.0,
+        "perm_p_holm": 1.0
+      },
+      "full_vs_no_jitter": {
+        "delta": -0.667,
+        "diff_ci": [
+          -1.4,
+          0.067
+        ],
+        "cliffs": -0.556,
+        "cliffs_ci": [
+          -1.0,
+          0.333
+        ],
+        "perm_p": 0.3,
+        "perm_p_holm": 1.0
+      }
+    },
+    "deepseek-v4.1-flash": {
+      "full": {
+        "n": 3,
+        "mean": 6.0,
+        "std": 0.4,
+        "ci": [
+          5.6,
+          6.4
+        ],
+        "scores": [
+          5.6,
+          6.4,
+          6.0
+        ]
+      },
+      "round_robin": {
+        "n": 3,
+        "mean": 6.133,
+        "std": 0.503,
+        "ci": [
+          5.6,
+          6.6
+        ],
+        "scores": [
+          5.6,
+          6.6,
+          6.2
+        ]
+      },
+      "no_jitter": {
+        "n": 3,
+        "mean": 5.0,
+        "std": 0.8,
+        "ci": [
+          4.2,
+          5.8
+        ],
+        "scores": [
+          4.2,
+          5.8,
+          5.0
+        ]
+      },
+      "full_vs_round_robin": {
+        "delta": -0.133,
+        "diff_ci": [
+          -0.733,
+          0.467
+        ],
+        "cliffs": -0.222,
+        "cliffs_ci": [
+          -1.0,
+          0.778
+        ],
+        "perm_p": 0.8,
+        "perm_p_holm": 1.0
+      },
+      "full_vs_no_jitter": {
+        "delta": 1.0,
+        "diff_ci": [
+          0.2,
+          1.8
+        ],
+        "cliffs": 0.778,
+        "cliffs_ci": [
+          0.111,
+          1.0
+        ],
+        "perm_p": 0.2,
+        "perm_p_holm": 1.0
+      }
+    }
+  },
+  "p3_same_machine_holm": {
+    "step-5-preview|full_vs_round_robin": 0.6,
+    "step-5-preview|full_vs_no_jitter": 1.0,
+    "step-3.7-flash|full_vs_round_robin": 1.0,
+    "step-3.7-flash|full_vs_no_jitter": 1.0,
+    "deepseek-v4.1-flash|full_vs_round_robin": 1.0,
+    "deepseek-v4.1-flash|full_vs_no_jitter": 1.0
+  },
+  "mechanism": {
+    "p2-full": {
+      "n_disc": 5,
+      "n_rounds": 15,
+      "gini": 0.267,
+      "gini_sd": 0.243,
+      "forced": 5,
+      "forced_rate": "5/15"
+    },
+    "p2-round_robin": {
+      "n_disc": 5,
+      "n_rounds": 15,
+      "gini": 0.0,
+      "gini_sd": 0.0,
+      "forced": 0,
+      "forced_rate": "0/15"
+    },
+    "p2-no_jitter": {
+      "n_disc": 5,
+      "n_rounds": 15,
+      "gini": 0.089,
+      "gini_sd": 0.199,
+      "forced": 5,
+      "forced_rate": "5/15"
+    },
+    "p3-full": {
+      "n_disc": 3,
+      "n_rounds": 14,
+      "gini": 0.233,
+      "gini_sd": 0.058,
+      "forced": 1,
+      "forced_rate": "1/14"
+    },
+    "p3-round_robin": {
+      "n_disc": 3,
+      "n_rounds": 15,
+      "gini": 0.133,
+      "gini_sd": 0.0,
+      "forced": 0,
+      "forced_rate": "0/15"
+    },
+    "p3-no_jitter": {
+      "n_disc": 3,
+      "n_rounds": 14,
+      "gini": 0.378,
+      "gini_sd": 0.139,
+      "forced": 1,
+      "forced_rate": "1/14"
+    }
+  }
+}

@@ -2,75 +2,98 @@
 \section{Results}
 \label{sec:results}
 
-\subsection{Inter-judge agreement is near zero (RQ1)}
+\input{figures_all}
+
+\subsection{Inter-judge agreement is low and heterogeneous (RQ1)}
 
 Table~\ref{tab:agreement} reports pairwise agreement between the three
 judges on the 32 experimental discussions (overall score). No judge
-pair reaches substantial rank agreement: $\rho$ spans $-0.05$ to
-$+0.47$ (mean $+0.21$), and mean absolute differences run from 0.54 to
-0.90 points on a 10-point scale. Per dimension, agreement on insight
-depth---the most subjective axis---is near zero or negative for all
-three pairs ($-0.23$, $+0.20$, $+0.12$): the judges systematically
-disagree about which discussions are deep. All three judges are
-distinct models from one vendor, so these figures describe disagreement
-across model families within a vendor; whether cross-vendor pairs
-disagree more is left to the released artifact as further judges are
-added.
+pair reaches strong rank agreement: among the three analyzed judges
+$\rho$ spans $-0.10$ to $+0.28$ and mean absolute differences run from
+0.66 to 0.87 points on a 10-point scale, so two judges looking at the
+same transcript typically differ by most of a scale point, and their
+rankings can be uncorrelated or slightly negatively correlated. The
+cross-vendor pairs behave no better than the same-vendor pair, so the
+disagreement is not a within-vendor artifact. A fourth released judge
+(a flash-class model of the driver's vendor, not analyzed in the main
+text) reaches $\rho=+0.47$ with one of the three---still far from
+strong agreement---and $+0.21$/$+0.26$ with the other two. Per
+dimension, agreement on insight depth---the most subjective axis---is
+negative for the two pairs involving the flagship judge ($-0.23$,
+$-0.10$) and only $+0.33$ for the remaining pair: the judges
+systematically disagree about which discussions are deep. A
+parser-clean sensitivity analysis (Appendix~\ref{app:quality}) leaves
+one pair at $\rho=+0.61$ while the other two stay near zero, so we
+report agreement as heterogeneous rather than uniformly low. Because all
+judges are LLMs from two vendors, these figures describe disagreement
+across model families within and between two vendors; we do not claim
+they bound disagreement with human judges.
 
 \begin{table}[t]
 \centering
-\caption{Pairwise inter-judge agreement (overall score, 32
-discussions).}
+\caption{Pairwise inter-judge agreement (overall score, 32 discussions).
+``Cross'' marks pairs from different vendors. The released fourth judge
+is shown for completeness only.}
 \label{tab:agreement}
 \small
-\begin{tabular}{@{}lccc@{}}
+\begin{tabular}{@{}lcccc@{}}
 \toprule
-Judge pair & $n$ & Spearman $\rho$ & Mean $\lvert\Delta\rvert$ \\
+Judge pair & $n$ & Spearman $\rho$ & Mean $\lvert\Delta\rvert$ & Depth $\rho$ \\
 \midrule
-step-5-preview vs.\ step-3.7-flash & 32 & $-0.05$ & 0.72 \\
-step-5-preview vs.\ step-3.5-flash & 32 & $+0.21$ & 0.90 \\
-step-3.7-flash vs.\ step-3.5-flash & 32 & $+0.47$ & 0.54 \\
+step-5-preview vs.\ step-3.7-flash & 32 & $-0.05$ & 0.72 & $-0.23$ \\
+step-5-preview vs.\ deepseek-v4.1-flash (cross) & 32 & $+0.28$ & 0.87 & $-0.10$ \\
+step-3.7-flash vs.\ deepseek-v4.1-flash (cross) & 32 & $-0.10$ & 0.66 & $+0.33$ \\
+\midrule
+step-3.5-flash (released) vs.\ step-5-preview & 32 & $+0.21$ & 0.90 & --- \\
+step-3.5-flash (released) vs.\ step-3.7-flash & 32 & $+0.47$ & 0.54 & --- \\
+step-3.5-flash (released) vs.\ deepseek-v4.1-flash & 32 & $+0.26$ & 0.57 & --- \\
 \bottomrule
 \end{tabular}
-
-\smallskip
-\noindent Per-dimension $\rho$ on insight depth: $-0.23$, $+0.20$,
-$+0.12$ for the three pairs.
 \end{table}
 
 \subsection{Leniency offset, not self-preference (RQ2)}
 
-The three judges form a leniency ladder: step-5-preview scores 0.60
-above the two-judge mean on a discussion (bootstrap 95\% CI
-$[+0.35,+0.84]$, excluding zero), step-3.5-flash scores 0.60 below it
-(CI $[-0.81,-0.40]$, excluding zero), and step-3.7-flash sits at the
-midpoint ($+0.01$, CI $[-0.18,+0.21]$). The two extreme judges thus
-differ by roughly 1.2 points on the 10-point scale for identical
-transcripts. Crucially, the offsets persist in cells where the judge
-did \emph{not} produce the discussion, so they are properties of the
+The three judges form a leniency ladder
+(Table~\ref{tab:leniency}): step-5-preview scores $+0.61$ above the
+mean of the other two judges on the same discussion (bootstrap 95\% CI
+$[+0.40,+0.80]$, excluding zero), deepseek-v4.1-flash scores $-0.62$
+below it (CI $[-0.83,-0.42]$, excluding zero), and step-3.7-flash sits
+at the midpoint ($+0.02$, CI $[-0.23,+0.26]$). The two extreme judges
+thus differ by about 1.23 points on the 10-point scale for identical
+transcripts. Crucially, the offsets persist in cells where the judge did
+\emph{not} produce the discussion: restricted to transcripts driven by
+another model, the offsets are $+0.38$ (CI $[+0.08,+0.68]$, $n=13$),
+$-0.30$ (CI $[-0.55,-0.03]$, $n=19$), and $-0.62$ (CI
+$[-0.83,-0.42]$, $n=32$). The offsets are therefore properties of the
 judges, not preferences for their own family. Direct self-preference
 estimates are small and statistically indistinguishable from zero:
-$+0.05$ (CI $[-0.70,+0.70]$) and $-0.10$ (CI $[-0.40,+0.40]$) for the
-two judges that also served as drivers. This decomposes the two
-mechanisms that the standard mitigation (``use a different family'')
-conflates: changing family removes self-preference, which was not the
-operative effect here, while leaving the leniency offset untouched.
+$+0.05$ (stratified bootstrap CI $[-0.60,+0.75]$; exact permutation
+$p=1.0$) and $-0.10$ (CI $[-0.50,+0.30]$; $p=0.83$) for the two judges
+that also served as drivers, on four same-driver and four other-driver
+discussions each (an exploratory, unblocked comparison). This
+decomposes the two mechanisms that the standard
+mitigation (``use a different family'') conflates: changing family
+removes self-preference, which was not the operative effect here, while
+leaving the leniency offset untouched. The non-detection of
+self-preference is a power statement (four vs.\ four discussions), not
+evidence of absence.
 
 \begin{table}[t]
 \centering
 \caption{Leniency offset per judge (score minus the mean of the other
-judges on the same discussion) and self-preference delta (same-driver
-minus other-driver discussions), with bootstrap 95\% intervals
-(10{,}000 resamples).}
+judges on the same discussion; bootstrap 95\% interval, 10{,}000
+resamples over discussions) and self-preference delta (same-driver
+minus other-driver discussions under that judge; stratified bootstrap
+interval and exact permutation $p$ over all 70 labelings).}
 \label{tab:leniency}
 \small
 \begin{tabular}{@{}lccc@{}}
 \toprule
-Judge & Leniency offset & 95\% CI & Self-pref.\ $\Delta$ (CI) \\
+Judge & Leniency offset & 95\% CI & Self-pref.\ $\Delta$ (CI; $p$) \\
 \midrule
-step-5-preview & $+0.60$ & $[+0.35,+0.84]$ & $+0.05$ ($[-0.70,+0.70]$) \\
-step-3.7-flash & $+0.01$ & $[-0.18,+0.21]$ & $-0.10$ ($[-0.40,+0.40]$) \\
-step-3.5-flash & $-0.60$ & $[-0.81,-0.40]$ & --- \\
+step-5-preview & $+0.61$ & $[+0.40,+0.80]$ & $+0.05$ ($[-0.60,+0.75]$; $p=1.0$) \\
+step-3.7-flash & $+0.02$ & $[-0.23,+0.26]$ & $-0.10$ ($[-0.50,+0.30]$; $p=0.83$) \\
+deepseek-v4.1-flash & $-0.62$ & $[-0.83,-0.42]$ & --- \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -78,87 +101,133 @@ step-3.5-flash & $-0.60$ & $[-0.81,-0.40]$ & --- \\
 \subsection{Single-judge component conclusions do not replicate (RQ3)}
 
 Table~\ref{tab:ablation} reports the ablation replication at five
-repetitions per condition under the primary driver. Judge A ranks the
+repetitions per condition under the primary driver. The audited
+evaluation claims that arbitration and jitter contribute $-0.92$ and
+$-0.80$ (removing either component \emph{lowers} the score), i.e.\ the
+full system should outscore both ablations. The same-model judge---the
+judge is the driver, the single-judge protocol structure---ranks the
 full system \emph{below} both ablations (Cliff's $\delta=-0.48$ and
-$-0.64$): removing components \emph{raises} the score. Judges B and C
-run in the opposite direction, consistent with the audited evaluation's
-ordering but with small effect sizes. The audited evaluation's headline
-claim---that arbitration and jitter contribute $-0.92$ and $-0.80$---is
-reproduced by \emph{no} judge at anything like that magnitude.
+$-0.64$): removing components \emph{raises} the score, the opposite of
+the audited direction. The cross-vendor judge runs in the audited
+direction on both contrasts ($\delta=+0.32$ and $+0.60$) and the
+same-vendor sibling on one ($+0.56$; $+0.08$ on the other). The audited
+magnitudes are reproduced by \emph{no} judge at anything like that
+scale: the largest effect any judge reports is $\lvert\delta\rvert=0.64$,
+and it points the other way. With five repetitions per condition no
+contrast is significant after Holm correction across the six contrasts
+(three judges $\times$ two ablations; correction applied post hoc; raw
+exact $p$ from $0.11$ to $0.68$, adjusted $p\geq0.67$), so we read this
+table as \emph{direction and effect size}, not as a significance test: the finding is that the direction of the
+component effect is a property of the judge, not that any single
+contrast is established.
 
 \begin{table}[t]
 \centering
 \caption{Ablation replication, five repetitions per condition, primary
 driver (mean overall $\pm$ SD). $\delta$ is Cliff's delta for full
-vs.\ ablated condition under the stated judge.}
+vs.\ ablated condition under the stated judge, with exact two-sided
+permutation $p$ and Holm-adjusted $p^{*}$ across the six contrasts
+(3 judges $\times$ 2 ablations; post hoc family-wise control).}
 \label{tab:ablation}
 \small
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{@{}lcccccc@{}}
 \toprule
-& \multicolumn{2}{c}{Judge A} & \multicolumn{2}{c}{Judge B} & \multicolumn{2}{c}{Judge C} \\
+& \multicolumn{2}{c}{Same-model judge} & \multicolumn{2}{c}{Same-vendor judge} & \multicolumn{2}{c}{Cross-vendor judge} \\
 \cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
-Condition & Score & $\delta$ & Score & $\delta$ & Score & $\delta$ \\
+Condition & Score & $\delta$ ($p$) & Score & $\delta$ ($p$) & Score & $\delta$ ($p$) \\
 \midrule
-Full system & $6.56\pm.57$ & --- & $6.24\pm.26$ & --- & $5.84\pm.70$ & --- \\
-No arb.\ (round-robin) & $7.04\pm.41$ & $-0.48$ & $6.04\pm.17$ & $+0.56$ & $5.76\pm.57$ & $+0.16$ \\
-No jitter & $7.12\pm.30$ & $-0.64$ & $6.04\pm.74$ & $+0.08$ & $5.52\pm.93$ & $+0.28$ \\
+Full system & $6.56\pm.57$ & --- & $6.24\pm.26$ & --- & $6.36\pm.43$ & --- \\
+No arb.\ (round-robin) & $7.04\pm.41$ & $-0.48$ ($0.20$) & $6.04\pm.17$ & $+0.56$ ($0.29$) & $6.16\pm.26$ & $+0.32$ ($0.48$) \\
+No jitter & $7.12\pm.30$ & $-0.64$ ($0.11$) & $6.04\pm.74$ & $+0.08$ ($0.68$) & $5.88\pm.59$ & $+0.60$ ($0.21$) \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
+
+\smallskip
+\noindent Judge identities: same-model $=$ step-5-preview (also the
+driver), same-vendor $=$ step-3.7-flash, cross-vendor $=$
+deepseek-v4.1-flash. Holm-adjusted $p^{*}\geq0.67$ for all six
+contrasts.
 \end{table}
 
 \subsection{Same-machine replication: only the judge varies}
 
 Table~\ref{tab:samemachine} holds transcripts fixed and varies only the
-judge, on the secondary driver (three repetitions per condition). A
-same-model judge---the structure of the audited single-judge
-protocol---ranks the full system \emph{below} the no-jitter ablation
-($\delta=-0.56$); cross-model judge A ranks it below the round-robin
-ablation at the maximum effect size ($\delta=-1.00$: every round-robin
-discussion outscores every full-system discussion); cross-model judge B
-places it first on both comparisons but with small effects. Across both
-drivers and all three judges, no judge--driver combination reproduces
-the audited evaluation's component ordering: the ranking is a property
-of the judge, not of the system.
+judge, on the secondary driver (three repetitions per condition). The
+three judge identities produce three different condition orderings on
+\emph{identical} transcripts: the driver's own model ranks the full
+system below the no-jitter ablation ($\delta=-0.56$); the same-vendor
+sibling ranks it below the round-robin ablation at the maximum effect
+size ($\delta=-1.00$: every round-robin discussion outscores every
+full-system discussion, exact $p=0.1$, the resolution floor at $3\times3$);
+and the cross-vendor judge ranks the full system above the no-jitter
+ablation ($\delta=+0.78$; interval for the mean difference
+$[+0.20,+1.80]$ excludes zero, but exact $p=0.2$ and Holm-adjusted
+$p=1.0$, so we treat it as suggestive only). Across both drivers and
+all three judges, no judge--driver combination reproduces the audited
+evaluation's component ordering on both contrasts. This is the
+strongest form of the evidence available at this sample size: the
+transcripts are held fixed, so the only changed factor is the judge,
+and the ranking moves. We do not claim a driver-independent causal
+effect beyond the tested transcripts; the factorial's driver and judge
+factors are partially confounded by design (\S\ref{sec:discussion}).
 
 \begin{table}[t]
 \centering
 \caption{Same-machine replication (secondary driver, three repetitions
 per condition, mean overall $\pm$ SD). Identical transcripts; only the
-judge differs.}
+judge differs. $\delta$ is Cliff's delta for full vs.\ ablated
+condition.}
 \label{tab:samemachine}
 \small
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{@{}lcccccc@{}}
 \toprule
-& \multicolumn{2}{c}{Same-model} & \multicolumn{2}{c}{Cross-model A} & \multicolumn{2}{c}{Cross-model B} \\
+& \multicolumn{2}{c}{Driver's own model} & \multicolumn{2}{c}{Same-vendor judge} & \multicolumn{2}{c}{Cross-vendor judge} \\
 \cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
 Condition & Score & $\delta$ & Score & $\delta$ & Score & $\delta$ \\
 \midrule
-Full system & $6.27\pm.58$ & --- & $6.13\pm.12$ & --- & $6.40\pm.72$ & --- \\
-No arb.\ (round-robin) & $6.47\pm.12$ & $+0.11$ & $6.80\pm.35$ & $-1.00$ & $6.13\pm.12$ & $+0.33$ \\
-No jitter & $6.93\pm.64$ & $-0.56$ & $5.93\pm1.03$ & $-0.11$ & $5.93\pm.83$ & $+0.33$ \\
+Full system & $6.27\pm.58$ & --- & $6.13\pm.12$ & --- & $6.00\pm.40$ & --- \\
+No arb.\ (round-robin) & $6.47\pm.12$ & $+0.11$ & $6.80\pm.35$ & $-1.00$ & $6.13\pm.50$ & $-0.22$ \\
+No jitter & $6.93\pm.64$ & $-0.56$ & $5.93\pm1.03$ & $-0.11$ & $5.00\pm.80$ & $+0.78$ \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
+
+\smallskip
+\noindent Judge identities: driver's own model $=$ step-3.7-flash (also
+the driver), same-vendor $=$ step-5-preview, cross-vendor $=$
+deepseek-v4.1-flash. Exact permutation $p$-values: $1.0$, $0.1$, $1.0$
+(own model); $0.1$, $1.0$, $1.0$ (same-vendor); $0.8$, $0.2$, $1.0$
+(cross-vendor), for round-robin/no-jitter contrasts as listed.
 \end{table}
 
 \subsection{Mechanism metrics: the framework operates as designed}
 \label{sec:mechanism}
 
-Judge-free metrics confirm the ablations manipulate what they claim.
-Under the primary driver, the full system produces unequal speaking
-counts (Gini $=0.10$), round-robin produces a fixed rotation (Gini
-$=0.00$ at three rounds; $0.13$ at five), and removing jitter collapses
-most of the asymmetry (Gini $=0.03$), confirming jitter as the
-operative source of speaking inequality. Forced speech never occurs
-under round-robin (by construction) and occurs under both other
-conditions. The framework's speaking mechanism behaves as documented;
-the instability documented above resides in the evaluation layer, not
-the framework.
+Judge-free metrics confirm the ablations manipulate what they claim
+(Table~\ref{tab:mechanism}). Under the primary driver, the full system
+produces unequal speaking counts (Gini $=0.27$), round-robin produces a
+fixed rotation (Gini $=0.00$), and removing jitter collapses most of
+the asymmetry (Gini $=0.09$), consistent with jitter as the operative
+source of speaking inequality under this driver. Under the secondary
+driver the pattern does not hold (no-jitter Gini $=0.38$ exceeds the
+full system's $0.23$), so we do not generalize the jitter claim beyond
+the primary driver. Forced speech never occurs under round-robin (by
+construction) and occurs at similar rates under the other two
+conditions. Note that these Gini values count all three agents, with
+zero-speech agents included; the audited pipeline's own turn-count
+statistic omits zero-speech agents (\S\ref{sec:method}), which is the
+defect whose robustness check is reported in
+Appendix~\ref{app:robust}. The framework's speaking mechanism behaves
+as documented under the primary driver; the instability documented
+above resides in the evaluation layer, not the framework.
 
 \begin{table}[t]
 \centering
 \caption{Mechanism metrics per ablation condition (deterministic, no
-judge involved). Gini: speaking-count inequality; forced: rounds in
-which all agents waited and a speaker was forced.}
+judge involved). Gini: speaking-count inequality over all three agents;
+forced: rounds in which all agents waited and a speaker was forced, over
+the actual number of rounds.}
 \label{tab:mechanism}
 \small
 \begin{tabular}{@{}lcccc@{}}
@@ -167,44 +236,9 @@ which all agents waited and a speaker was forced.}
 \cmidrule(lr){2-3}\cmidrule(lr){4-5}
 Condition & Gini & Forced & Gini & Forced \\
 \midrule
-Full system & 0.10 & 5/25 & 0.23 & 1/9 \\
-No arbitration & 0.00--0.13 & 0/25 & 0.13 & 0/9 \\
-No jitter & 0.03 & 5/25 & 0.19 & 1/9 \\
+Full system & 0.27 & 5/15 & 0.23 & 1/14 \\
+No arbitration & 0.00 & 0/15 & 0.13 & 0/15 \\
+No jitter & 0.09 & 5/15 & 0.38 & 1/14 \\
 \bottomrule
 \end{tabular}
 \end{table}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.85\linewidth]{figures/fig1_condition_scores}
-\caption{Per-condition scores under three judges with bootstrap
-intervals (primary driver, five repetitions). The ordering of
-conditions varies across judges.}
-\label{fig:flip}
-\end{figure}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.85\linewidth]{figures/fig2_trajectories}
-\caption{Per-discussion overall scores for all three judge pairs
-(32 discussions). No pair shows tight agreement.}
-\label{fig:trajectories}
-\end{figure}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.85\linewidth]{figures/fig3_same_machine}
-\caption{Same-machine replication: identical transcripts scored by three
-judges (secondary driver). The full system leads under at most one
-judge.}
-\label{fig:samemachine}
-\end{figure}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.85\linewidth]{figures/fig4_mechanism}
-\caption{Mechanism metrics per condition (speaking Gini and forced
-rounds), both drivers. Jitter removal collapses speaking asymmetry
-under the primary driver.}
-\label{fig:mechanism}
-\end{figure}

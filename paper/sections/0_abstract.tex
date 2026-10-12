@@ -7,23 +7,31 @@ scores drive claims about which system components matter. The robustness
 of such claims to the identity of the judge has not been examined. We
 audit this evaluation protocol on \sysname{}, a decentralized roundtable
 framework in which each agent bids for the floor with a self-assessed
-confidence score. We re-implemented the framework's protocol verbatim as
-a headless, dependency-free testbed, and scored 32 discussions with
-three judges built from three distinct models. Three findings emerge. First, no judge pair
-reaches substantial rank agreement on discussion quality (Spearman
-$\rho$ from $-0.05$ to $+0.47$; mean absolute differences up to 0.90
-points on a 10-point scale), and agreement on insight depth is near
-zero or negative for every pair. Second, the judges form a leniency
-ladder---one scores 0.60 above the two-judge mean and another 0.60 below
-it, both with bootstrap confidence intervals excluding zero---while
-self-preference is not detected; this refines the standard advice that
-using a different judge family suffices. Third, component-importance
-conclusions drawn from a single-judge ablation vary with the judge
-(Cliff's $\delta$ up to $-1.0$), and in a same-machine replication
-where only the judge varies, no judge--driver combination reproduces
-the audited evaluation's component ordering.
+confidence score. We re-implemented the framework's speaking protocol as
+a headless, dependency-free testbed, and scored 32 discussions (one
+warmup discussion excluded) with three judges drawn from two vendors:
+two models of the driver's vendor and one cross-vendor model. Three
+findings emerge. First, rank agreement between judges is low and
+heterogeneous (Spearman $\rho$ from $-0.10$ to $+0.28$ among the
+three analyzed judges; $+0.47$ at most including a fourth released
+judge), and mean absolute differences run up to 0.87 points on a
+10-point scale; in a parser-clean sensitivity analysis one cross-vendor
+pair reaches $\rho=+0.61$ (moderate) while level differences remain
+large. Second, the judges form a leniency ladder---one scores
+$+0.61$ above the two-judge mean and another $0.62$ below it, both with
+bootstrap confidence intervals excluding zero, and the offsets persist
+on transcripts the judge did not produce---while self-preference is not
+detected; this refines the standard advice that using a different judge
+family suffices. Third, component-importance conclusions drawn from a
+single-judge ablation vary with the judge (Cliff's $\delta$ from $-1.00$
+to $+0.78$ across judges and drivers), and in a same-machine replication
+where only the judge varies, no judge reproduces the audited
+evaluation's component ordering on both contrasts; no contrast survives
+multiplicity correction, so we report direction and effect size rather
+than significance.
 We conclude that single-judge LLM scores do not support
 component-importance claims about multi-agent discussion systems in
-their current form, and we propose a minimum multi-judge reporting
-norm. All code, transcripts, judgments, and an independent jury record
-are released with the paper.
+their current form, and we propose a case-study-derived multi-judge
+reporting heuristic. All code, transcripts, judgments, a robustness re-judgment of the
+discussions affected by a defect we found in the audited judge prompt,
+and an auxiliary model review record are released with the paper.

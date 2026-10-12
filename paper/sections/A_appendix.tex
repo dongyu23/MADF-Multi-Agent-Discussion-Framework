@@ -1,12 +1,13 @@
 % A_appendix.tex
 \appendix
-\section{Independent jury record}
+\section{Auxiliary model review record}
 \label{app:jury}
 
 Because the authors audited their own system's evaluation, an
 independent model (different family from the authors' toolchain)
 reviewed the evidence-to-claim mapping before this manuscript was
-finalized. The jury received the full results, the candidate claims,
+finalized; this is an auxiliary review by a model outside the authors'
+toolchain, not a blind review and not an independent replication. The jury received the full results, the candidate claims,
 the known caveats, and instructions to avoid inflating claims beyond
 the data. Its verdict was \emph{partial} support with \emph{medium}
 confidence. Points the jury raised and how this manuscript responds:
@@ -14,15 +15,17 @@ confidence. Points the jury raised and how this manuscript responds:
 \begin{itemize}
 \item \emph{``Non-significance under small $n$ is a design property,
 not a finding.''} Accepted: the manuscript's primary evidence for RQ3
-is the direction reversal with maximum effect size and disjoint
-bootstrap intervals; exact $p$-values are reported as auxiliary.
+is the direction reversal with maximum effect size and intervals for
+the differences; exact $p$-values are reported as auxiliary and no
+significance claim is made for any single contrast.
 \item \emph{``Self-preference non-detection is a power statement, not
 proof of absence.''} Accepted: claims are stated as ``not detected''
-with intervals, never as absence.
+with intervals and an exact permutation $p$-value, never as absence.
 \item \emph{``Driver capability is partly confounded with judge identity
 in the factorial.''} Accepted: the same-machine replication
 (\S\ref{sec:results}) holds transcripts fixed and varies only the
-judge, and the limitation is stated in \S\ref{sec:discussion}.
+judge, the confounding is stated in \S\ref{sec:discussion}, and no
+driver-independent causal claim is made beyond the tested transcripts.
 \item \emph{``The setting is narrow.''} Accepted: the posture is a
 protocol audit case study; generality is claimed for the inferential
 move (single-judge component ranking), not for the framework.
@@ -31,20 +34,136 @@ move (single-judge component ranking), not for the framework.
 The full jury transcript, the deterministic evidence pre-check, and
 the claim-by-claim responses are released with the repository.
 
+\section{Judge data quality}
+\label{app:quality}
+
+Table~\ref{tab:quality} quantifies the reasoning-model degradation
+described in \S\ref{sec:method} per judge. ``Parse-fallback'' counts
+dimension calls whose output required regex extraction instead of
+direct JSON parsing; ``defaulted'' counts dimension calls that ended at
+the 5.0 fallback (a subset of parse-fallback: no recoverable score);
+``direct'' counts calls parsed directly from JSON. The released fourth
+judge's degradation rate is roughly three times the others', which is
+why it is excluded from the main analysis. No judgment is excluded from
+any analysis on these grounds; the counts are reported so readers can
+weigh the evidence.
+
+\begin{table}[h]
+\centering
+\caption{Per-judge data quality over the 32 analyzed discussions
+(160 dimension calls each).}
+\label{tab:quality}
+\small
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+Judge & Mean overall & Direct JSON & Parse-fallback & Defaulted to 5.0 \\
+\midrule
+step-5-preview & 6.73 & 132/160 & 28/160 & 24/160 \\
+step-3.7-flash & 6.33 & 133/160 & 27/160 & 22/160 \\
+deepseek-v4.1-flash & 5.91 & 130/160 & 30/160 & 26/160 \\
+step-3.5-flash (released only) & 5.93 & 82/160 & 78/160 & 59/160 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Parser-robustness sensitivity.}
+Because the 5.0 default enters the reported overall scores, we re-ran
+the headline analyses on a parser-clean subset: parse-fallback
+dimensions treated as missing, a discussion--judge cell kept when at
+least three of five dimensions were directly parsed (30, 29, and 30 of
+32 cells retained per judge; script and output released). The clean
+overall is a complete-case estimand (the mean of the directly parsed
+dimensions, at least three of five), not a corrected estimate of the
+five-dimension score; the comparison quantifies sensitivity, not
+validation. The leniency ladder is preserved, with intervals still
+excluding zero for the two
+extremes ($+0.63$ $[+0.46,+0.79]$, $+0.03$ $[-0.27,+0.34]$, $-0.66$
+$[-0.86,-0.47]$). The same-model judge's direction reversal
+(Table~\ref{tab:ablation}) is preserved on both contrasts. One of the
+six p2 direction labels moves---the cross-vendor judge's no-jitter cell
+flips to full-below with only three of five discussions retained---so
+direction claims for that judge are treated as suggestive. Rank
+agreement remains low for two pairs ($\rho=+0.03$, $-0.09$) but one
+cross-vendor pair rises from $+0.28$ to $+0.61$ (moderate) on the clean
+subset, while mean absolute differences stay large (0.73--0.84). We
+therefore state the agreement finding as heterogeneous and modest
+rather than uniformly near-zero, and the sensitivity numbers above
+show how much the parser fallback moves each claim.
+
+\section{Robustness re-judgment of the turn-count defect}
+\label{app:robust}
+
+The audited judge prompt's pre-computed speaking-count statistic omits
+agents that never speak (\S\ref{sec:method}), affecting 7 of the 32
+discussions: \texttt{p1-step-5-preview-t2-r1},
+\texttt{p2-full-r1/r2/r3}, \texttt{p2-no\_jitter-r3},
+\texttt{p3-no\_jitter-r1/r3}. We re-judged exactly these discussions
+with corrected statistics (all three agents counted, true maximum gap),
+under the same three judges, prompts, and temperature.
+Table~\ref{tab:robust} reports the effect. The corrected re-judgment
+did not overturn any qualitative direction: under corrected statistics
+the same-model judge still ranks the full system below both ablations
+(cell means $6.96$ vs.\ $7.04$ and $7.40$), the cross-vendor judge
+still ranks it above both ($6.68$ vs.\ $6.16$ and $6.04$), and the
+same-machine orderings are unchanged. Because the re-judgment is a
+fresh sample at temperature 0.1, the observed score shifts---including
+the $+1.00$ average rise on the flagship judge's previously capped
+dimensions---cannot be attributed solely to the prompt correction;
+they bound the defect's plausible influence rather than identifying its
+causal effect. The main analysis therefore keeps the audited prompts,
+and this appendix establishes that the reported directions survive the
+correction. (A separate sensitivity analysis on the parser-clean
+subset, \S\ref{app:quality}, moves one cross-vendor direction label;
+both checks are reported so neither is read as stronger than it is.)
+
+\begin{table}[h]
+\centering
+\caption{Robustness of the 7 affected discussions to the corrected
+turn-count statistic. ``Mean shift'': corrected minus audited overall,
+averaged over the 7 discussions. ``Capped dims'': shift on coherence and
+engagement (14 dimension calls per judge). Cell means: p2 full-system
+and no-jitter cells with the affected repetitions re-judged.}
+\label{tab:robust}
+\small
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+Judge & Mean shift & Capped dims & p2 full & p2 no-jitter & Direction \\
+\midrule
+step-5-preview & $+0.51$ & $+1.00$ & $6.56\to6.96$ & $7.12\to7.40$ & kept \\
+step-3.7-flash & $-0.20$ & $+0.07$ & $6.24\to6.04$ & $6.04\to5.92$ & kept \\
+deepseek-v4.1-flash & $+0.26$ & $+0.14$ & $6.36\to6.68$ & $5.88\to6.04$ & kept \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \section{Artifact contents}
 
+All paths below are relative to \path{exam2/} in the released
+repository.
+
 \begin{itemize}
-\item \texttt{exam2/madf\_harness.py} --- headless testbed (protocol
-reimplementation, verbatim prompts and algorithms).
-\item \texttt{exam2/run\_experiment.py}, \texttt{score\_third\_judge.py}
---- experiment and multi-judge scoring runners.
-\item \texttt{exam2/results/raw/discussions.jsonl} --- every discussion
-with full transcript and per-round decision logs (decision,
-confidence, reasoning, jittered confidence, speaker, forced flag).
-\item \texttt{exam2/results/raw/judgments.jsonl} --- every raw judge
-output per dimension.
-\item \texttt{exam2/analyze.py}, \texttt{stats\_addendum.py} ---
-agreement, offset, effect-size, and bootstrap analyses.
-\item \texttt{exam2/CLAMS\_FROM\_RESULTS.md} --- jury verdict and
-responses; \texttt{.aris/traces/} --- jury transcripts.
+\item \path{madf_harness.py} --- headless testbed (protocol
+reimplementation, prompts and algorithms reproduced from the audited
+source; fidelity mapping included).
+\item \path{run_experiment.py}, \path{score_third_judge.py},
+\path{rejudge_robustness.py}\newline --- experiment, multi-judge
+scoring, and robustness re-judgment runners.
+\item \path{final_analysis_v2.py}, \path{make_tikz_figures_v2.py},
+\path{parser_sensitivity.py}\newline --- analysis, figure generation,
+and the parser-robustness sensitivity check (every number and figure in
+the paper is reproducible from these scripts plus the raw files below).
+\item \path{results/raw/discussions.jsonl} --- every discussion with
+full transcript and per-round decision logs (decision, confidence,
+reasoning, jittered confidence, speaker, forced flag); includes the
+excluded warmup discussion, labeled by job id.
+\item \path{results/raw/judgments.jsonl} --- every raw judge output per
+dimension, for the three analyzed judges and the released fourth judge.
+\item \path{results/raw/judgments_robustness.jsonl} --- the
+corrected-statistics re-judgment of the 7 affected discussions.
+\item \path{results/analysis/final_stats_v2.json} --- all reported
+statistics with intervals and exact $p$-values.
+\item \path{results/analysis/parser_sensitivity.json} --- the
+parser-clean sensitivity analysis.
+\item \path{CLAIMS_FROM_RESULTS.md} --- jury verdict and responses;
+\path{.aris/traces/} --- jury transcripts.
 \end{itemize}

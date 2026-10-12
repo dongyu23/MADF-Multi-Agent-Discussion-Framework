@@ -1,0 +1,18 @@
+{
+  "run_id": "run_20261012_f5830c04",
+  "round": 3,
+  "threadId": "01a13024-8209-7221-95e8-a803f4172cb7",
+  "reviewer_backend": "codex",
+  "reviewer_model": "gpt-6-sol",
+  "executor_model": "new-provider/step-5-preview",
+  "reviewer_family": "openai",
+  "executor_family": "stepfun",
+  "family_relation": "different",
+  "requires_external_acquittal": false,
+  "status": "completed",
+  "difficulty": "medium",
+  "last_score": 7.0,
+  "last_verdict": "almost",
+  "pending_experiments": [],
+  "timestamp": "2026-10-12T22:20:00"
+}

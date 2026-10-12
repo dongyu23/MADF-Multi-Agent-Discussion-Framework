@@ -2,7 +2,7 @@
 \section{Discussion}
 \label{sec:discussion}
 
-\paragraph{A minimum reporting norm.}
+\paragraph{A case-study-derived reporting heuristic.}
 Our results support a concrete minimum for papers that derive
 component-importance claims from LLM-judged multi-agent artifacts:
 (1)~score with at least two judges from different model families, and
@@ -10,28 +10,59 @@ preferably different vendors; (2)~report pairwise judge agreement and
 per-judge offsets alongside the scores; (3)~when judges disagree on the
 ordering of the variants, downgrade the component claim to
 ``undetermined'' or escalate to human judgment, rather than reporting
-the single judge's $p$-value. Condition (3) is the escalation idea of
-\citet{jung2024trust} applied at the level of conclusions, and (1)--(2)
-are the panel idea of \citet{verga2024juries} reduced to its
-measurement core.
+the single judge's $p$-value. Condition (3) is the escalation idea
+of~\cite{jung2024trust} applied at the level of conclusions, and (1)--(2)
+are the panel idea of~\cite{verga2024juries} reduced to its
+measurement core. We offer this as a heuristic derived from one case study: what the
+study establishes is the need to report judge sensitivity, not that
+this particular panel size is sufficient.
 
 \paragraph{What the leniency result changes.}
 The community's default mitigation for judge bias is family
 substitution. Our decomposition shows why that is insufficient here:
-the operative effect is a between-judge level shift (offset CI excluding
-zero) that survives family substitution, while self-preference---the
-effect family substitution targets---is not detected. A judge panel
-with a level-calibration step (e.g., anchoring all judges to a common
-reference set) is the natural repair; we leave its validation to future
-work.
+the operative effect is a between-judge level shift (offset interval
+excluding zero, persisting on transcripts the judge did not produce)
+that survives family substitution, while self-preference---the effect
+family substitution targets---is not detected at the available power. A
+judge panel with a level-calibration step (e.g., anchoring all judges
+to a common reference set) is the natural repair; we leave its
+validation to future work.
+
+\paragraph{Statistical honesty at this sample size.}
+With five repetitions per ablation condition (three in the same-machine
+replication), no contrast survives multiplicity correction, and the
+$3\times3$ exact test cannot return $p<0.1$ at all. We therefore make
+no significance claim for any single contrast. The evidence for RQ3 is
+structural: on identical transcripts, changing only the judge changes
+the direction of the component effect, with effect sizes up to
+$\lvert\delta\rvert=1.00$; and the audited evaluation's reported
+magnitudes ($-0.92$, $-0.80$) are not approached by any judge we
+tested. Direction reversal under a controlled factor is a weaker but
+more robust form of evidence than a $p$-value at this $n$, and it is
+sufficient to break the specific inferential move under audit: reading
+a single judge's component differences as properties of the system.
 
 \paragraph{Relationship to general judge-reliability findings.}
 That LLM judges are imperfect is established~\cite{reliability2026,
 allverdicts2026}. The contribution here is downstream: measuring what
-that imperfection does to a specific scientific inference
-(component ranking), in a setting (open-ended multi-party dialogue)
-where no ground truth anchors the scores, and separating two mechanisms
-that prior work treats jointly. The same-machine replication is the
-piece that makes the causal claim tight: identical transcripts, one
-changed factor.
+that imperfection does to a specific scientific inference (component
+ranking), in a setting where no ground truth anchors the scores, and
+separating two mechanisms that prior work treats jointly. The
+same-machine replication holds transcripts fixed so that judge identity
+is the only changed factor within the tested set; because the
+factorial's driver and judge factors are partially confounded by
+design, we do not claim a driver-independent causal effect beyond the
+tested transcripts.
 
+\paragraph{A defect found in the audited judge.}
+The audit surfaced a concrete defect in the audited evaluation's judge
+prompt: the pre-computed speaking-count statistic omits agents that
+never speak, understating the maximum gap and misapplying the prompt's
+own hard caps in 7 of 32 discussions. We preserved the audited behavior
+in the main analysis (the prompt is part of the protocol under audit,
+and the defect applies identically to every judge, so it cannot
+manufacture inter-judge disagreement) and verified by re-judgment that
+the affected discussions do not carry the qualitative conclusions
+(Appendix~\ref{app:robust}). Reporting the defect is part of the audit's
+value: it is exactly the kind of silent evaluation bug that
+single-judge protocols do not surface.

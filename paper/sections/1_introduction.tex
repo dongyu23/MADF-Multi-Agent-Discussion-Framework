@@ -25,7 +25,7 @@ measured is the consequence for the specific inferential move that
 multi-agent papers make: a single judge scores transcripts of system
 variants, and the resulting differences are read as properties of the
 \emph{system}. If a different judge reverses the ordering of the
-variants, the component ranking is a property of the judge, not of the
+variants, the component ranking is not established as a property of the
 system.
 
 This paper is an audit of that inferential move, conducted on a system
@@ -38,37 +38,46 @@ leniency offset? \textbf{RQ3:} Do the component-importance conclusions
 of a single-judge evaluation replicate when the judge changes?
 
 Our approach has three parts. First, we re-implemented the audited
-system's speaking protocol verbatim (decision schema, confidence
-arbitration, deterministic jitter, host prompts) as a headless testbed
-with no third-party dependencies, so that every condition differs only
-in the factor under study. Second, we ran a $2\times2$ factorial
-experiment crossing driver model with judge model, plus a replication
-of the system's component ablation under multiple judges, including a
-same-machine replication in which only the judge varies. Third, we
-scored all transcripts with three judges built from three distinct
-models, so that judge identity is a controlled factor rather than an
+system's speaking protocol as a headless testbed with no third-party
+dependencies (system prompt, decision schema, confidence arbitration,
+jitter algorithm, and host prompts reproduced from the source;
+deviations listed in \S\ref{sec:method}), so that every condition
+differs only in the factor under study. Second, we ran a $2\times2$
+factorial experiment crossing driver model with judge model, plus a
+replication of the system's component ablation under multiple judges,
+including a same-machine replication in which only the judge varies.
+Third, we scored all transcripts with three judges from two
+vendors---two models of the driver's vendor and one cross-vendor
+model---so that judge identity is a controlled factor rather than an
 assumption.
 
 \paragraph{Contributions.}
-(i)~A protocol-faithful, reproducible testbed for multi-agent
-discussion evaluation (released with all prompts and decision logs).
-(ii)~The first quantification, to our knowledge, of cross-judge
-agreement in this setting: no judge pair reaches substantial rank
-correlation on discussion quality, and level differences reach 1.2
-points on a 10-point scale.
+(i)~A protocol-faithful, released testbed for multi-agent discussion
+evaluation (all prompts and per-round decision logs included).
+(ii)~A quantification of cross-judge agreement in this setting: rank
+correlation is low and heterogeneous ($\rho\leq+0.28$ among the three
+analyzed judges, $+0.47$ at most including a fourth released judge; one
+cross-vendor pair reaches $+0.61$ in a parser-clean sensitivity
+analysis), and level differences reach 0.87 points on a 10-point
+scale.
 (iii)~A mechanism decomposition showing that the dominant inter-judge
-effect is a leniency offset whose confidence interval excludes zero,
-while self-preference is not detected---refining the standard mitigation
+effect is a leniency offset whose confidence interval excludes zero and
+that persists on transcripts the judge did not produce, while
+self-preference is not detected---refining the standard mitigation
 advice that a different judge family suffices.
 (iv)~A replication audit showing that a single judge's
-component-importance conclusions reverse direction under a
-different judge, and that a same-machine replication in which only the
-judge varies reproduces the audited evaluation's component ordering
-under no judge--driver combination tested.
+component-importance conclusions vary with the judge (Cliff's $\delta$
+from $-1.00$ to $+0.78$ across judges and drivers), that no judge
+reproduces the audited evaluation's component ordering in the
+same-machine replication, and that no judge reproduces the audited
+effect magnitudes; with three-to-five repetitions per condition, no
+contrast survives multiplicity correction, so we report direction and
+effect size rather than significance.
 
 All quantitative claims are scoped to the studied setting: one
-discussion framework, one ablation topic, and five repetitions per
-ablation condition; we state these boundaries where they apply.
+discussion framework, one ablation topic, five repetitions per ablation
+condition (three in the same-machine replication), and 32 discussions
+in total; we state these boundaries where they apply.
 
 \paragraph{Scope and posture.} The first author is the developer of the
 audited framework, and the audited evaluation is the first author's own
