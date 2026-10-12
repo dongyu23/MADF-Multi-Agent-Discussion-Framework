@@ -5,36 +5,45 @@
 \paragraph{Reliability of LLM judges.}
 The LLM-as-a-judge paradigm was popularized by MT-Bench, which reported
 human-comparable agreement alongside systematic biases---position,
-verbosity, and self-enhancement~\cite{zheng2023judging}. Subsequent work
-questioned the metrics used to certify judges: inter-rater reliability
-between judge models ignores that judges are stochastic systems
-themselves~\cite{wang2024canyoutrust}, and exact-match agreement
-overstates discriminative power relative to chance-corrected
-measures~\cite{reliability2026}. The largest audits to date evaluate
-dozens of judges across hundreds of thousands of judgments, finding
-that judge rankings shift materially across
-benchmarks~\cite{reliability2026} and that reliability is item-specific
-rather than a model-level property~\cite{allverdicts2026}; agreement
-with human annotators has been catalogued for over fifty
-models~\cite{judgesverdict2025}, and self-preference bias has been
-quantified and mitigated in controlled
-designs~\cite{selfpref2026}. Closest to our object of inference,
-JuStRank~\cite{gera2025justrank} benchmarks 48 judges as
-\emph{system rankers} against a Chatbot Arena ground truth, showing
-that instance-level judge quality does not guarantee correct system
-ranking and characterizing per-judge system bias and ``decisiveness''.
-Three differences keep our measurement distinct: the ranked objects
-there are independent chatbot systems with different outputs, whereas
-ours are component variants of one system generated from
-\emph{identical} transcripts; the reference is a human ground truth,
-whereas we have none and ask instead whether the conclusion is stable
-across judges; and the quantity of interest there is a system ranking,
-whereas ours is a component-importance conclusion drawn from an
-ablation. Our setting differs in the artifact under
-judgment (multi-party discussion transcripts) and, critically, in the
-inferential use: these works ask whether judges are reliable; we ask
-what judge identity does to \emph{component-importance conclusions}
-derived from judge scores.
+verbosity, and self-enhancement~\cite{zheng2023judging}. The critique
+literature that followed is large; we organize it by what it perturbs
+and what consequence it measures. \emph{Instance-level critiques}
+perturb the judgment call itself: position and verbosity
+biases~\cite{zheng2023judging}, self-preference~\cite{selfpref2026},
+non-determinism at temperature zero and order flips~\cite{allverdicts2026},
+sensitivity to prompts and rubrics~\cite{hassell2026mawile}, and the
+elicitation format itself---forced single-label ratings on indeterminate
+tasks bias judge validation by as much as 30\%~\cite{guerdan2025validating}.
+\emph{Ranking-level critiques with a human ground truth} then ask what
+these instabilities do to system rankings: JuStRank~\cite{gera-etal-2025-justrank}
+benchmarks 48 judges as system rankers against a Chatbot Arena ground
+truth, finding that instance-level judge quality does not guarantee
+correct system ranking and characterizing per-judge system bias and
+``decisiveness''; GAUGE~\cite{bodhwani2026gauge} shows that an
+LLM-simulator plus LLM-judge gate for task agents picks the lower-reward
+agent on 31\% of near-equal pairs (under 1\% for far-apart pairs) and
+that satisfaction does not track task success; and in information
+retrieval, LLM-generated relevance labels move 78--83\% of system
+ranking positions~\cite{otero2024limitations}. Bencher-design work
+varies the evaluation model as one component of an automatic ranking
+pipeline and finds rankings move with it~\cite{gao-etal-2025-evaluating}.
+The largest audits generalize across benchmarks and find reliability is
+item-specific rather than model-level~\cite{reliability2026,
+allverdicts2026}. Our paper occupies the one cell this literature leaves
+open: the quantity of interest is a \emph{component-importance
+conclusion} drawn from an ablation, there is \emph{no human ground
+truth}, and the comparison holds transcripts \emph{identical} so that
+judge identity is the only changed factor. Three distinctions from the
+closest neighbors: the ranked objects in JuStRank and
+\cite{gao-etal-2025-evaluating} are independent systems with different
+outputs, whereas ours are component variants of one system; their
+reference is a human ground truth, whereas we ask whether the conclusion
+is stable across judges at all; and GAUGE's gate can appeal to a
+verifiable task reward, which open-ended discussion quality does not
+have. (GAUGE also reports family favoritism in its setting while we do
+not detect self-preference in ours; the discrepancy is consistent with
+the item-specific nature of judge behavior~\cite{allverdicts2026} and
+with our study's low power on that contrast.)
 
 \paragraph{Mitigations: panels and escalation.}
 Two mitigation families are established. Panels of diverse models
@@ -99,7 +108,9 @@ Trust-or-escalate~\cite{jung2024trust} & general & escalation & no & no \\
 Large audits~\cite{reliability2026,allverdicts2026} & benchmarks & yes & no & no \\
 Who Speaks Next?~\cite{whospeaks2024} & game dialogue & no & no & no \\
 MALLM~\cite{becker-etal-2025-mallm} & debate & no & partial & partial \\
-JuStRank~\cite{gera2025justrank} & chatbot systems & yes (48) & no & no \\
+JuStRank~\cite{gera-etal-2025-justrank} & chatbot systems & yes (48) & no & no \\
+GAUGE~\cite{bodhwani2026gauge} & task agents & no & no & no \\
+Bencher design~\cite{gao-etal-2025-evaluating} & chat systems & yes & no & no \\
 This paper & discussion & yes (3, 2 vendors) & yes & yes \\
 \bottomrule
 \end{tabular}}
