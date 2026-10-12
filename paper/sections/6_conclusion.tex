@@ -4,15 +4,15 @@
 
 We audited the evaluation protocol by which a multi-agent discussion
 system's component importance is established. Re-implementing the
-protocol verbatim and scoring 33 discussions with two judges from
-different model families, we found that cross-judge rank agreement on
-discussion quality is near zero; that the dominant inter-judge effect is a leniency offset
-rather than self-preference, refining the standard family-substitution
-mitigation; and that a single judge's component-importance conclusions
-reverse direction under a different judge, while a same-vendor
-single-judge protocol reproduces the direction of the audited
-evaluation. Mechanism metrics confirm the framework under audit
-operates as designed, locating the instability in the evaluation layer.
+protocol verbatim and scoring 32 discussions with three judges built
+from three distinct models, we found that no judge pair reaches
+substantial rank agreement on discussion quality; that the judges form
+a leniency ladder whose extremes differ by about 1.2 points on a
+10-point scale while self-preference is not detected, refining the
+standard family-substitution mitigation; and that a single judge's
+component-importance conclusions vary with the judge, with no
+judge--driver combination reproducing the audited evaluation's
+component ordering in a same-machine replication.
 
 The practical upshot is a reporting norm rather than a prohibition:
 multi-judge scoring with agreement reporting, and conclusion-level
