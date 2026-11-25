@@ -1,4 +1,8 @@
-# MADF — Multi-Agent Discussion Framework
+<p align="center">
+  <img src="docs/icon.png" alt="MADF 图标" width="128">
+</p>
+
+<h1 align="center">MADF — Multi-Agent Discussion Framework</h1>
 
 让 AI 角色坐在一张圆桌上自由辩论——你只需抛出问题。
 
